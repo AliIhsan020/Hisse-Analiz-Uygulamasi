@@ -1,1 +1,0 @@
-Eğlence amaçlı geliştirdiğim kodlar
