@@ -10,8 +10,8 @@ warnings.filterwarnings('ignore')
 # =============================================================================
 
 # RSI Kriterleri
-MIN_RSI = 35          # Minimum RSI değeri (örn: 35 = aşırı satımdan çıkanlar)
-MAX_RSI = 70          # Maksimum RSI değeri (örn: 70 = aşırı alıma girmeyenler)
+MIN_RSI = 40          # Minimum RSI değeri (örn: 35 = aşırı satımdan çıkanlar)
+MAX_RSI = 65          # Maksimum RSI değeri (örn: 70 = aşırı alıma girmeyenler)
 
 # MACD Kriterleri
 MACD_POSITIVE = True   # True: MACD pozitif olsun, False: negatif olsun, None: fark etmez
@@ -27,25 +27,25 @@ PRICE_ABOVE_MA50 = True   # True: Fiyat MA50 üstünde, False: altında, None: f
 PRICE_ABOVE_MA200 = None  # True: Fiyat MA200 üstünde, False: altında, None: fark etmez
 
 # Hacim Kriterleri
-MIN_VOLUME = 200000     # Minimum günlük hacim
-MIN_VOLUME_RATIO = 1.0  # Minimum hacim oranı (güncel/20günlük ortalama)
+MIN_VOLUME = 300000     # Minimum günlük hacim
+MIN_VOLUME_RATIO = 0.5  # Minimum hacim oranı (güncel/20günlük ortalama)
 MAX_VOLUME_RATIO = 5.0  # Maksimum hacim oranı (anormal hacim artışını filtrele)
 
 # Fiyat Kriterleri
-MIN_PRICE = 10.0       # Minimum hisse fiyatı
-MAX_PRICE = 500.0      # Maksimum hisse fiyatı
+MIN_PRICE = 15.0       # Minimum hisse fiyatı
+MAX_PRICE = 200.0      # Maksimum hisse fiyatı
 
 # Bollinger Bands Kriterleri
-BB_POSITION_MIN = 25.0   # Bollinger Bands içindeki minimum pozisyon (0-100)
-BB_POSITION_MAX = 75.0   # Bollinger Bands içindeki maksimum pozisyon (0-100)
+BB_POSITION_MIN = 30.0   # Bollinger Bands içindeki minimum pozisyon (0-100)
+BB_POSITION_MAX = 70.0   # Bollinger Bands içindeki maksimum pozisyon (0-100)
 
 # Stochastic Kriterleri
 MIN_STOCH_K = 20        # Minimum Stochastic %K değeri
 MAX_STOCH_K = 80        # Maksimum Stochastic %K değeri
 
 # Volatilite Kriterleri
-MIN_VOLATILITY = 1.0    # Minimum 20 günlük volatilite (%)
-MAX_VOLATILITY = 20.0   # Maksimum 20 günlük volatilite (%)
+MIN_VOLATILITY = 2.0    # Minimum 20 günlük volatilite (%)
+MAX_VOLATILITY = 10.0   # Maksimum 20 günlük volatilite (%)
 
 
 # =============================================================================
