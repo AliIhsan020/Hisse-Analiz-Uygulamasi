@@ -10,7 +10,7 @@ warnings.filterwarnings('ignore')
 # =============================================================================
 
 # RSI Kriterleri
-MIN_RSI = 30          # Minimum RSI değeri (örn: 30 = aşırı satımdan çıkanlar)
+MIN_RSI = 35          # Minimum RSI değeri (örn: 35 = aşırı satımdan çıkanlar)
 MAX_RSI = 70          # Maksimum RSI değeri (örn: 70 = aşırı alıma girmeyenler)
 
 # MACD Kriterleri
@@ -23,29 +23,30 @@ SAR_TREND_UP = True     # True: Yükseliş trendi, False: Düşüş trendi, None
 
 # Hareketli Ortalama Kriterleri
 PRICE_ABOVE_MA20 = True   # True: Fiyat MA20 üstünde, False: altında, None: fark etmez
-PRICE_ABOVE_MA50 = None   # True: Fiyat MA50 üstünde, False: altında, None: fark etmez
+PRICE_ABOVE_MA50 = True   # True: Fiyat MA50 üstünde, False: altında, None: fark etmez
 PRICE_ABOVE_MA200 = None  # True: Fiyat MA200 üstünde, False: altında, None: fark etmez
 
 # Hacim Kriterleri
-MIN_VOLUME = 100000     # Minimum günlük hacim
-MIN_VOLUME_RATIO = 0.5  # Minimum hacim oranı (güncel/20günlük ortalama)
-MAX_VOLUME_RATIO = 10.0 # Maksimum hacim oranı (anormal hacim artışını filtrele)
+MIN_VOLUME = 200000     # Minimum günlük hacim
+MIN_VOLUME_RATIO = 1.0  # Minimum hacim oranı (güncel/20günlük ortalama)
+MAX_VOLUME_RATIO = 5.0  # Maksimum hacim oranı (anormal hacim artışını filtrele)
 
 # Fiyat Kriterleri
-MIN_PRICE = 1.0       # Minimum hisse fiyatı
-MAX_PRICE = 1000.0    # Maksimum hisse fiyatı
+MIN_PRICE = 10.0       # Minimum hisse fiyatı
+MAX_PRICE = 500.0      # Maksimum hisse fiyatı
 
 # Bollinger Bands Kriterleri
-BB_POSITION_MIN = 0.0   # Bollinger Bands içindeki minimum pozisyon (0-100)
-BB_POSITION_MAX = 100.0 # Bollinger Bands içindeki maksimum pozisyon (0-100)
+BB_POSITION_MIN = 25.0   # Bollinger Bands içindeki minimum pozisyon (0-100)
+BB_POSITION_MAX = 75.0   # Bollinger Bands içindeki maksimum pozisyon (0-100)
 
 # Stochastic Kriterleri
-MIN_STOCH_K = 20      # Minimum Stochastic %K değeri
-MAX_STOCH_K = 80      # Maksimum Stochastic %K değeri
+MIN_STOCH_K = 20        # Minimum Stochastic %K değeri
+MAX_STOCH_K = 80        # Maksimum Stochastic %K değeri
 
 # Volatilite Kriterleri
-MIN_VOLATILITY = 0.0  # Minimum 20 günlük volatilite (%)
-MAX_VOLATILITY = 50.0 # Maksimum 20 günlük volatilite (%)
+MIN_VOLATILITY = 1.0    # Minimum 20 günlük volatilite (%)
+MAX_VOLATILITY = 20.0   # Maksimum 20 günlük volatilite (%)
+
 
 # =============================================================================
 
