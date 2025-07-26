@@ -10,8 +10,8 @@ warnings.filterwarnings('ignore')
 # =============================================================================
 
 # RSI Kriterleri
-MIN_RSI = 40          # Minimum RSI değeri (örn: 35 = aşırı satımdan çıkanlar)
-MAX_RSI = 65          # Maksimum RSI değeri (örn: 70 = aşırı alıma girmeyenler)
+MIN_RSI = 30          # Minimum RSI değeri (örn: 30 = aşırı satımdan çıkanlar)
+MAX_RSI = 70          # Maksimum RSI değeri (örn: 70 = aşırı alıma girmeyenler)
 
 # MACD Kriterleri
 MACD_POSITIVE = True   # True: MACD pozitif olsun, False: negatif olsun, None: fark etmez
@@ -23,30 +23,29 @@ SAR_TREND_UP = True     # True: Yükseliş trendi, False: Düşüş trendi, None
 
 # Hareketli Ortalama Kriterleri
 PRICE_ABOVE_MA20 = True   # True: Fiyat MA20 üstünde, False: altında, None: fark etmez
-PRICE_ABOVE_MA50 = True   # True: Fiyat MA50 üstünde, False: altında, None: fark etmez
+PRICE_ABOVE_MA50 = None   # True: Fiyat MA50 üstünde, False: altında, None: fark etmez
 PRICE_ABOVE_MA200 = None  # True: Fiyat MA200 üstünde, False: altında, None: fark etmez
 
 # Hacim Kriterleri
-MIN_VOLUME = 300000     # Minimum günlük hacim
+MIN_VOLUME = 100000     # Minimum günlük hacim
 MIN_VOLUME_RATIO = 0.5  # Minimum hacim oranı (güncel/20günlük ortalama)
-MAX_VOLUME_RATIO = 5.0  # Maksimum hacim oranı (anormal hacim artışını filtrele)
+MAX_VOLUME_RATIO = 10.0 # Maksimum hacim oranı (anormal hacim artışını filtrele)
 
 # Fiyat Kriterleri
-MIN_PRICE = 15.0       # Minimum hisse fiyatı
-MAX_PRICE = 200.0      # Maksimum hisse fiyatı
+MIN_PRICE = 1.0       # Minimum hisse fiyatı
+MAX_PRICE = 1000.0    # Maksimum hisse fiyatı
 
 # Bollinger Bands Kriterleri
-BB_POSITION_MIN = 30.0   # Bollinger Bands içindeki minimum pozisyon (0-100)
-BB_POSITION_MAX = 70.0   # Bollinger Bands içindeki maksimum pozisyon (0-100)
+BB_POSITION_MIN = 0.0   # Bollinger Bands içindeki minimum pozisyon (0-100)
+BB_POSITION_MAX = 100.0 # Bollinger Bands içindeki maksimum pozisyon (0-100)
 
 # Stochastic Kriterleri
-MIN_STOCH_K = 20        # Minimum Stochastic %K değeri
-MAX_STOCH_K = 80        # Maksimum Stochastic %K değeri
+MIN_STOCH_K = 20      # Minimum Stochastic %K değeri
+MAX_STOCH_K = 80      # Maksimum Stochastic %K değeri
 
 # Volatilite Kriterleri
-MIN_VOLATILITY = 2.0    # Minimum 20 günlük volatilite (%)
-MAX_VOLATILITY = 10.0   # Maksimum 20 günlük volatilite (%)
-
+MIN_VOLATILITY = 0.0  # Minimum 20 günlük volatilite (%)
+MAX_VOLATILITY = 50.0 # Maksimum 20 günlük volatilite (%)
 
 # =============================================================================
 
@@ -329,9 +328,114 @@ def scan_and_filter_stocks():
     print(f"\n✅ Toplam {len(all_results)} hisse analiz edildi.")
     print(f"🎯 {len(filtered_results)} hisse kriterlere uygun bulundu.")
     
-    return filtered_results
+    return filtered_results, all_results
 
-def display_filtered_results(results):
+def calculate_proximity_score(stock):
+    """Hissenin kriterlere ne kadar yakın olduğunu hesapla"""
+    score = 0
+    max_score = 0
+    
+    # RSI skorunu hesapla
+    max_score += 1
+    if MIN_RSI <= stock['rsi'] <= MAX_RSI:
+        score += 1
+    else:
+        # RSI aralığına ne kadar yakın olduğuna göre kısmi puan
+        if stock['rsi'] < MIN_RSI:
+            distance = MIN_RSI - stock['rsi']
+            score += max(0, 1 - distance/20)  # 20 puan fark için lineer azalış
+        else:
+            distance = stock['rsi'] - MAX_RSI
+            score += max(0, 1 - distance/20)
+    
+    # MACD skorları
+    if MACD_POSITIVE is not None:
+        max_score += 1
+        if (MACD_POSITIVE and stock['macd'] > 0) or (not MACD_POSITIVE and stock['macd'] <= 0):
+            score += 1
+        else:
+            score += 0.5  # Kısmi puan
+    
+    if MACD_HISTOGRAM_POSITIVE is not None:
+        max_score += 1
+        if (MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] > 0) or (not MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] <= 0):
+            score += 1
+        else:
+            score += 0.5
+    
+    # SAR skorları
+    if PRICE_ABOVE_SAR is not None:
+        max_score += 1
+        price_above_sar = stock['price'] > stock['sar']
+        if PRICE_ABOVE_SAR == price_above_sar:
+            score += 1
+        else:
+            score += 0.3
+    
+    if SAR_TREND_UP is not None:
+        max_score += 1
+        trend_up = stock['sar_trend'] == 1
+        if SAR_TREND_UP == trend_up:
+            score += 1
+        else:
+            score += 0.3
+    
+    # MA skorları
+    if PRICE_ABOVE_MA20 is not None:
+        max_score += 1
+        price_above_ma20 = stock['price'] > stock['ma_20']
+        if PRICE_ABOVE_MA20 == price_above_ma20:
+            score += 1
+        else:
+            score += 0.4
+    
+    if PRICE_ABOVE_MA50 is not None and stock['ma_50']:
+        max_score += 1
+        price_above_ma50 = stock['price'] > stock['ma_50']
+        if PRICE_ABOVE_MA50 == price_above_ma50:
+            score += 1
+        else:
+            score += 0.4
+    
+    # Fiyat aralığı skoru
+    max_score += 1
+    if MIN_PRICE <= stock['price'] <= MAX_PRICE:
+        score += 1
+    else:
+        score += 0.2
+    
+    # Hacim skoru
+    max_score += 1
+    if stock['volume'] >= MIN_VOLUME and MIN_VOLUME_RATIO <= stock['volume_ratio'] <= MAX_VOLUME_RATIO:
+        score += 1
+    else:
+        # Hacim kriterlerine yakınlık
+        volume_score = 0.5 if stock['volume'] >= MIN_VOLUME/2 else 0.2
+        ratio_score = 0.5 if MIN_VOLUME_RATIO/2 <= stock['volume_ratio'] <= MAX_VOLUME_RATIO*2 else 0.2
+        score += max(volume_score, ratio_score)
+    
+    # Bollinger Bands skoru
+    max_score += 1
+    if BB_POSITION_MIN <= stock['bb_position'] <= BB_POSITION_MAX:
+        score += 1
+    else:
+        score += 0.3
+    
+    # Stochastic skoru
+    max_score += 1
+    if MIN_STOCH_K <= stock['stoch_k'] <= MAX_STOCH_K:
+        score += 1
+    else:
+        score += 0.3
+    
+    # Volatilite skoru
+    max_score += 1
+    if MIN_VOLATILITY <= stock['volatility'] <= MAX_VOLATILITY:
+        score += 1
+    else:
+        score += 0.3
+    
+    return score / max_score if max_score > 0 else 0
     """Filtrelenmiş sonuçları göster"""
     if not results:
         print("\n❌ Kriterlere uygun hisse bulunamadı!")
@@ -389,8 +493,8 @@ def main():
     choice = input(f"\nBu kriterlerle taramaya başlayalım mı? (e/h): ")
     
     if choice.lower() == 'e':
-        filtered_results = scan_and_filter_stocks()
-        display_filtered_results(filtered_results)
+        filtered_results, all_results = scan_and_filter_stocks()
+        display_filtered_results(filtered_results, all_results)
         
         if filtered_results:
             print(f"\n📊 ÖRNEK ANALİZ:")
