@@ -436,10 +436,37 @@ def calculate_proximity_score(stock):
         score += 0.3
     
     return score / max_score if max_score > 0 else 0
+
+def display_filtered_results(results, all_results):
     """Filtrelenmiş sonuçları göster"""
     if not results:
         print("\n❌ Kriterlere uygun hisse bulunamadı!")
-        print("Global filtreleri daha esnek hale getirmeyi deneyin.")
+        print("\n💡 Kriterlerinizi daha esnek hale getirmek için aşağıdaki yakın adayları inceleyin:")
+        
+        # Yakın adayları göster
+        scored_results = []
+        for stock in all_results:
+            score = calculate_proximity_score(stock)
+            if score > 0.6:  # %60'tan fazla kriterle uyumlu
+                scored_results.append((stock, score))
+        
+        scored_results.sort(key=lambda x: x[1], reverse=True)
+        
+        if scored_results:
+            print(f"\n{'='*120}")
+            print(f"EN YAKIN ADAYLAR (Kriter Uyum Skoru > %60)")
+            print(f"{'='*120}")
+            print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Skor':<6}")
+            print(f"{'-'*120}")
+            
+            for stock, score in scored_results[:10]:  # İlk 10 aday
+                trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
+                ma20_status = "Üst" if stock['price'] > stock['ma_20'] else "Alt"
+                
+                print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
+                      f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
+                      f"{ma20_status:<6} {stock['bb_position']:<6.1f} {score*100:<6.1f}%")
+        
         return
     
     # RSI'ye göre sırala
