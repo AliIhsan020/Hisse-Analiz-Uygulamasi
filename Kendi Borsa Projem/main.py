@@ -306,18 +306,19 @@ def check_filters(stock):
     
     return True
 
-def scan_and_filter_stocks():
-    """Tüm hisseleri tara ve filtrele"""
-    print("🔍 BIST hisseleri taranıyor ve filtreleniyor...")
+def scan_and_filter_stocks(selected_stocks=None):
+    """Seçilen hisseleri veya tüm hisseleri tara ve filtrele"""
+    stocks_to_scan = selected_stocks if selected_stocks else BIST_STOCKS
+    print(f"🔍 {'Seçilen' if selected_stocks else 'Tüm'} hisseler taranıyor ve filtreleniyor...")
     print("Bu işlem birkaç dakika sürebilir...\n")
     
     all_results = []
     filtered_results = []
     processed = 0
     
-    for ticker in BIST_STOCKS:
+    for ticker in stocks_to_scan:  # Corrected indentation
         processed += 1
-        print(f"İşleniyor: {ticker} ({processed}/{len(BIST_STOCKS)})", end='\r')
+        print(f"İşleniyor: {ticker} ({processed}/{len(stocks_to_scan)})", end='\r')
         
         result = analyze_stock_comprehensive(ticker)
         if result:
@@ -437,55 +438,70 @@ def calculate_proximity_score(stock):
     
     return score / max_score if max_score > 0 else 0
 
+def determine_recommendation(stock):
+    """Hisse için güçlü al, güçlü sat veya tut önerisi belirle"""
+    if stock['rsi'] < 30 and stock['macd_hist'] > 0 and stock['price'] > stock['ma_20']:
+        return "Güçlü Al"
+    elif stock['rsi'] > 70 and stock['macd_hist'] < 0 and stock['price'] < stock['ma_20']:
+        return "Güçlü Sat"
+    else:
+        return "Tut"
+
+def determine_investment_horizon(stock):
+    """Hisse için net bir vade değerlendirmesi yap"""
+    if stock['ma_200'] and stock['price'] > stock['ma_200']:
+        if stock['price'] > stock['ma_50']:
+            return "Uzun Vade (Güçlü)"
+        return "Uzun Vade"
+    elif stock['ma_50'] and stock['price'] > stock['ma_50']:
+        return "Orta Vade"
+    else:
+        return "Kısa Vade (Riskli)"
+
 def display_filtered_results(results, all_results):
-    """Filtrelenmiş sonuçları göster"""
+    """Filtrelenmiş sonuçları ve kriterlere uymayanları göster"""
     if not results:
         print("\n❌ Kriterlere uygun hisse bulunamadı!")
-        print("\n💡 Kriterlerinizi daha esnek hale getirmek için aşağıdaki yakın adayları inceleyin:")
+    
+    # Kriterlere uygun olanları göster
+    if results:
+        sorted_results = sorted(results, key=lambda x: x['rsi'], reverse=True)
+        print(f"\n{'='*160}")
+        print(f"KRİTERLERE UYGUN HİSSELER ({len(results)} adet)")
+        print(f"{'='*160}")
+        print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<13} {'Öneri':<10} {'Vade':<10}")
+        print(f"{'-'*160}")
         
-        # Yakın adayları göster
-        scored_results = []
-        for stock in all_results:
-            score = calculate_proximity_score(stock)
-            if score > 0.6:  # %60'tan fazla kriterle uyumlu
-                scored_results.append((stock, score))
-        
-        scored_results.sort(key=lambda x: x[1], reverse=True)
-        
-        if scored_results:
-            print(f"\n{'='*120}")
-            print(f"EN YAKIN ADAYLAR (Kriter Uyum Skoru > %60)")
-            print(f"{'='*120}")
-            print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Skor':<6}")
-            print(f"{'-'*120}")
+        for stock in sorted_results:
+            trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
+            ma20_status = "Üst" if stock['price'] > stock['ma_20'] else "Alt"
+            recommendation = determine_recommendation(stock)
+            horizon = determine_investment_horizon(stock)
             
-            for stock, score in scored_results[:10]:  # İlk 10 aday
-                trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
-                ma20_status = "Üst" if stock['price'] > stock['ma_20'] else "Alt"
-                
-                print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
-                      f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
-                      f"{ma20_status:<6} {stock['bb_position']:<6.1f} {score*100:<6.1f}%")
+            print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
+                  f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
+                  f"{ma20_status:<6} {stock['bb_position']:<6.1f} {stock['stoch_k']:<6.1f} "
+                  f"{stock['volatility']:<6.1f} {stock['volume']:>12,.0f} {recommendation:<10} {horizon:<10}")
+    
+    # Kriterlere uymayanları göster
+    non_matching_results = [stock for stock in all_results if stock not in results]
+    if non_matching_results:
+        print(f"\n{'='*160}")
+        print(f"KRİTERLERE UYMAYAN HİSSELER ({len(non_matching_results)} adet)")
+        print(f"{'='*160}")
+        print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<13} {'Öneri':<10} {'Vade':<10}")
+        print(f"{'-'*160}")
         
-        return
-    
-    # RSI'ye göre sırala
-    sorted_results = sorted(results, key=lambda x: x['rsi'], reverse=True)
-    
-    print(f"\n{'='*140}")
-    print(f"KRİTERLERE UYGUN HİSSELER ({len(results)} adet)")
-    print(f"{'='*140}")
-    print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<12}")
-    print(f"{'-'*140}")
-    
-    for stock in sorted_results:
-        trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
-        ma20_status = "Üst" if stock['price'] > stock['ma_20'] else "Alt"
-        
-        print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
-              f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
-              f"{ma20_status:<6} {stock['bb_position']:<6.1f} {stock['stoch_k']:<6.1f} "
-              f"{stock['volatility']:<6.1f} {stock['volume']:>11,.0f}")
+        for stock in non_matching_results:
+            trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
+            ma20_status = "Üst" if stock['price'] > stock['ma_20'] else "Alt"
+            recommendation = determine_recommendation(stock)
+            horizon = determine_investment_horizon(stock)
+            
+            print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
+                  f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
+                  f"{ma20_status:<6} {stock['bb_position']:<6.1f} {stock['stoch_k']:<6.1f} "
+                  f"{stock['volatility']:<6.1f} {stock['volume']:>12,.0f} {recommendation:<10} {horizon:<10}")
 
 def show_current_filters():
     """Mevcut filtreleri göster"""
@@ -517,21 +533,28 @@ def main():
     print(f"\n💡 İPUCU: Kodun başındaki global değişkenleri değiştirerek")
     print(f"    filtreleri özelleştirebilirsiniz!")
     
-    choice = input(f"\nBu kriterlerle taramaya başlayalım mı? (e/h): ")
+    choice = input(f"\nTüm hisseleri taramak için 't', belirli hisseleri taramak için 'b' seçin (t/b): ").lower()
     
-    if choice.lower() == 'e':
+    if choice == 'b':
+        selected_stocks = input("Lütfen hisse kodlarını virgülle ayırarak girin (örn: THYAO,AKBNK): ").split(',')
+        selected_stocks = [stock.strip().upper() for stock in selected_stocks]
+        filtered_results, all_results = scan_and_filter_stocks(selected_stocks)
+    elif choice == 't':
         filtered_results, all_results = scan_and_filter_stocks()
-        display_filtered_results(filtered_results, all_results)
-        
-        if filtered_results:
-            print(f"\n📊 ÖRNEK ANALİZ:")
-            print(f"En yüksek RSI: {max(filtered_results, key=lambda x: x['rsi'])['ticker']} "
-                  f"(RSI: {max(filtered_results, key=lambda x: x['rsi'])['rsi']:.1f})")
-            print(f"En yüksek hacim: {max(filtered_results, key=lambda x: x['volume'])['ticker']} "
-                  f"(Hacim: {max(filtered_results, key=lambda x: x['volume'])['volume']:,.0f})")
     else:
-        print("Tarama iptal edildi. Filtreleri değiştirmek için kodun başındaki")
-        print("global değişkenleri düzenleyin!")
+        print("Geçersiz seçim! Program sonlandırılıyor.")
+        return
+    
+    display_filtered_results(filtered_results, all_results)
+    
+    if filtered_results:
+        print(f"\n📊 ÖRNEK ANALİZ:")
+        print(f"En yüksek RSI: {max(filtered_results, key=lambda x: x['rsi'])['ticker']} "
+              f"(RSI: {max(filtered_results, key=lambda x: x['rsi'])['rsi']:.1f})")
+        print(f"En yüksek hacim: {max(filtered_results, key=lambda x: x['volume'])['ticker']} "
+              f"(Hacim: {max(filtered_results, key=lambda x: x['volume'])['volume']:,.0f})")
+    else:
+        print("Kriterlere uygun hisse bulunamadı.")
 
 if __name__ == "__main__":
     main()
