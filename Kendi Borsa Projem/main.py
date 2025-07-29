@@ -155,8 +155,20 @@ def calculate_stochastic(high, low, close, k_period=14, d_period=3):
     d_percent = k_percent.rolling(window=d_period).mean()
     return k_percent, d_percent
 
+def calculate_drawdown(prices):
+    """Geri çekilme oranını hesapla (drawdown %)"""
+    max_price = prices.cummax()
+    drawdown = ((prices - max_price) / max_price) * 100
+    return drawdown.iloc[-1]
+
+def calculate_support_resistance(prices):
+    """Destek ve direnç seviyelerini hesapla"""
+    support = prices.rolling(window=20).min().iloc[-1]
+    resistance = prices.rolling(window=20).max().iloc[-1]
+    return support, resistance
+
 def analyze_stock_comprehensive(ticker):
-    """Kapsamlı hisse analizi"""
+    """Kapsamlı hisse analizi (geliştirilmiş)"""
     try:
         bist_ticker = ticker.strip().upper()
         if not bist_ticker.endswith('.IS'):
@@ -211,6 +223,10 @@ def analyze_stock_comprehensive(ticker):
         returns = close.pct_change().dropna()
         volatility = returns.rolling(window=20).std().iloc[-1] * np.sqrt(252) * 100  # Yıllık volatilite %
         
+        # Geri Çekilme Oranı ve Destek/Direnç
+        drawdown = calculate_drawdown(close)
+        support, resistance = calculate_support_resistance(close)
+        
         return {
             'ticker': ticker.upper(),
             'price': current_price,
@@ -226,7 +242,10 @@ def analyze_stock_comprehensive(ticker):
             'ma_200': ma_200,
             'bb_position': bb_position,
             'stoch_k': current_stoch_k,
-            'volatility': volatility
+            'volatility': volatility,
+            'drawdown': drawdown,
+            'support': support,
+            'resistance': resistance
         }
         
     except Exception as e:
@@ -439,11 +458,15 @@ def calculate_proximity_score(stock):
     return score / max_score if max_score > 0 else 0
 
 def determine_recommendation(stock):
-    """Hisse için güçlü al, güçlü sat veya tut önerisi belirle"""
-    if stock['rsi'] < 30 and stock['macd_hist'] > 0 and stock['price'] > stock['ma_20']:
+    """Hisse için öneri belirle (geliştirilmiş)"""
+    if stock['rsi'] > 80 or stock['stoch_k'] > 90 or stock['bb_position'] > 90:
+        return "Kar Satışlarına Dikkat"
+    elif stock['rsi'] < 30 and stock['macd_hist'] > 0 and stock['price'] > stock['ma_20']:
         return "Güçlü Al"
     elif stock['rsi'] > 70 and stock['macd_hist'] < 0 and stock['price'] < stock['ma_20']:
         return "Güçlü Sat"
+    elif stock['volatility'] > 70:
+        return "Kısa Vadede Riskli"
     else:
         return "Tut"
 
@@ -466,11 +489,11 @@ def display_filtered_results(results, all_results):
     # Kriterlere uygun olanları göster
     if results:
         sorted_results = sorted(results, key=lambda x: x['rsi'], reverse=True)
-        print(f"\n{'='*160}")
+        print(f"\n{'='*180}")
         print(f"KRİTERLERE UYGUN HİSSELER ({len(results)} adet)")
-        print(f"{'='*160}")
-        print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<13} {'Öneri':<10} {'Vade':<10}")
-        print(f"{'-'*160}")
+        print(f"{'='*180}")
+        print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<13} {'Draw%':<8} {'Destek':<8} {'Direnç':<8} {'Öneri':<20} {'Vade':<10}")
+        print(f"{'-'*180}")
         
         for stock in sorted_results:
             trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
@@ -481,16 +504,17 @@ def display_filtered_results(results, all_results):
             print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
                   f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
                   f"{ma20_status:<6} {stock['bb_position']:<6.1f} {stock['stoch_k']:<6.1f} "
-                  f"{stock['volatility']:<6.1f} {stock['volume']:>12,.0f} {recommendation:<10} {horizon:<10}")
+                  f"{stock['volatility']:<6.1f} {stock['volume']:>12,.0f} {stock['drawdown']:<8.1f} "
+                  f"{stock['support']:<8.2f} {stock['resistance']:<8.2f} {recommendation:<20} {horizon:<10}")
     
     # Kriterlere uymayanları göster
     non_matching_results = [stock for stock in all_results if stock not in results]
     if non_matching_results:
-        print(f"\n{'='*160}")
+        print(f"\n{'='*180}")
         print(f"KRİTERLERE UYMAYAN HİSSELER ({len(non_matching_results)} adet)")
-        print(f"{'='*160}")
-        print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<13} {'Öneri':<10} {'Vade':<10}")
-        print(f"{'-'*160}")
+        print(f"{'='*180}")
+        print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<13} {'Draw%':<8} {'Destek':<8} {'Direnç':<8} {'Öneri':<20} {'Vade':<10}")
+        print(f"{'-'*180}")
         
         for stock in non_matching_results:
             trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
@@ -501,7 +525,8 @@ def display_filtered_results(results, all_results):
             print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
                   f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
                   f"{ma20_status:<6} {stock['bb_position']:<6.1f} {stock['stoch_k']:<6.1f} "
-                  f"{stock['volatility']:<6.1f} {stock['volume']:>12,.0f} {recommendation:<10} {horizon:<10}")
+                  f"{stock['volatility']:<6.1f} {stock['volume']:>12,.0f} {stock['drawdown']:<8.1f} "
+                  f"{stock['support']:<8.2f} {stock['resistance']:<8.2f} {recommendation:<20} {horizon:<10}")
 
 def show_current_filters():
     """Mevcut filtreleri göster"""
