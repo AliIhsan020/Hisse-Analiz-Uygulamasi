@@ -226,7 +226,8 @@ def analyze_stock_comprehensive(ticker):
             'ma_200': ma_200,
             'bb_position': bb_position,
             'stoch_k': current_stoch_k,
-            'volatility': volatility
+            'volatility': volatility,
+            'historical_close': close  # Add historical close prices for support/resistance analysis
         }
         
     except Exception as e:
@@ -438,70 +439,143 @@ def calculate_proximity_score(stock):
     
     return score / max_score if max_score > 0 else 0
 
-def determine_recommendation(stock):
-    """Hisse için güçlü al, güçlü sat veya tut önerisi belirle"""
-    if stock['rsi'] < 30 and stock['macd_hist'] > 0 and stock['price'] > stock['ma_20']:
-        return "Güçlü Al"
-    elif stock['rsi'] > 70 and stock['macd_hist'] < 0 and stock['price'] < stock['ma_20']:
-        return "Güçlü Sat"
-    else:
-        return "Tut"
+def calculate_support_resistance(prices):
+    """Destek ve direnç seviyelerini hesapla"""
+    support = prices.min()
+    resistance = prices.max()
+    return support, resistance
 
-def determine_investment_horizon(stock):
-    """Hisse için net bir vade değerlendirmesi yap"""
-    if stock['ma_200'] and stock['price'] > stock['ma_200']:
-        if stock['price'] > stock['ma_50']:
-            return "Uzun Vade (Güçlü)"
-        return "Uzun Vade"
-    elif stock['ma_50'] and stock['price'] > stock['ma_50']:
-        return "Orta Vade"
-    else:
-        return "Kısa Vade (Riskli)"
+def determine_recommendation_with_reasons(stock):
+    """Hisse için öneri ve sebeplerini belirle"""
+    reasons = []
+    recommendation = "Tut"
 
-def display_filtered_results(results, all_results):
-    """Filtrelenmiş sonuçları ve kriterlere uymayanları göster"""
+    # Destek ve direnç analizi
+    if 'historical_close' in stock:
+        support, resistance = calculate_support_resistance(stock['historical_close'][-20:])
+        if stock['price'] > resistance:
+            recommendation = "Al"
+            reasons.append(f"Fiyat {resistance:.2f} direnç seviyesini hacimli kırdı.")
+        elif stock['price'] < support:
+            recommendation = "Sat"
+            reasons.append(f"Fiyat {support:.2f} destek seviyesinin altına hacimsiz düştü.")
+        else:
+            reasons.append(f"Fiyat destek ({support:.2f}) ve direnç ({resistance:.2f}) arasında hareket ediyor.")
+    else:
+        reasons.append("Destek ve direnç analizi için yeterli veri yok.")
+
+    # RSI analizi
+    if stock['rsi'] < 30:
+        recommendation = "Al"
+        reasons.append("RSI aşırı satım bölgesinde.")
+    elif stock['rsi'] > 70:
+        recommendation = "Sat"
+        reasons.append("RSI aşırı alım bölgesinde.")
+
+    # MACD analizi
+    if stock['macd_hist'] > 0:
+        reasons.append("MACD histogram pozitif, yükseliş sinyali.")
+    else:
+        reasons.append("MACD histogram negatif, düşüş sinyali.")
+
+    return recommendation, reasons
+
+def explain_why_not_matching(stock):
+    """Hisse neden kriterlere uymuyor, detaylı açıklama"""
+    reasons = []
+
+    # Fiyat filtreleri
+    if not (MIN_PRICE <= stock['price'] <= MAX_PRICE):
+        reasons.append(f"Fiyat {stock['price']:.2f} TL, {MIN_PRICE}-{MAX_PRICE} TL aralığında değil.")
+
+    # RSI filtreleri
+    if not (MIN_RSI <= stock['rsi'] <= MAX_RSI):
+        reasons.append(f"RSI {stock['rsi']:.1f}, {MIN_RSI}-{MAX_RSI} aralığında değil.")
+
+    # MACD filtreleri
+    if MACD_POSITIVE is not None:
+        if MACD_POSITIVE and stock['macd'] <= 0:
+            reasons.append("MACD negatif, pozitif olması bekleniyordu.")
+        if not MACD_POSITIVE and stock['macd'] >= 0:
+            reasons.append("MACD pozitif, negatif olması bekleniyordu.")
+    if MACD_HISTOGRAM_POSITIVE is not None:
+        if MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] <= 0:
+            reasons.append("MACD histogram negatif, pozitif olması bekleniyordu.")
+        if not MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] >= 0:
+            reasons.append("MACD histogram pozitif, negatif olması bekleniyordu.")
+
+    # Parabolik SAR filtreleri
+    if PRICE_ABOVE_SAR is not None:
+        price_above_sar = stock['price'] > stock['sar']
+        if PRICE_ABOVE_SAR != price_above_sar:
+            reasons.append(f"Fiyat {'üstünde' if price_above_sar else 'altında'}, SAR {'üstünde' if PRICE_ABOVE_SAR else 'altında'} olması bekleniyordu.")
+    if SAR_TREND_UP is not None:
+        trend_up = stock['sar_trend'] == 1
+        if SAR_TREND_UP != trend_up:
+            reasons.append(f"SAR trendi {'yukarı' if trend_up else 'aşağı'}, {'yukarı' if SAR_TREND_UP else 'aşağı'} olması bekleniyordu.")
+
+    # Hareketli ortalama filtreleri
+    if PRICE_ABOVE_MA20 is not None:
+        price_above_ma20 = stock['price'] > stock['ma_20']
+        if PRICE_ABOVE_MA20 != price_above_ma20:
+            reasons.append(f"Fiyat {'üstünde' if price_above_ma20 else 'altında'}, MA20 {'üstünde' if PRICE_ABOVE_MA20 else 'altında'} olması bekleniyordu.")
+    if PRICE_ABOVE_MA50 is not None and stock['ma_50']:
+        price_above_ma50 = stock['price'] > stock['ma_50']
+        if PRICE_ABOVE_MA50 != price_above_ma50:
+            reasons.append(f"Fiyat {'üstünde' if price_above_ma50 else 'altında'}, MA50 {'üstünde' if PRICE_ABOVE_MA50 else 'altında'} olması bekleniyordu.")
+    if PRICE_ABOVE_MA200 is not None and stock['ma_200']:
+        price_above_ma200 = stock['price'] > stock['ma_200']
+        if PRICE_ABOVE_MA200 != price_above_ma200:
+            reasons.append(f"Fiyat {'üstünde' if price_above_ma200 else 'altında'}, MA200 {'üstünde' if PRICE_ABOVE_MA200 else 'altında'} olması bekleniyordu.")
+
+    # Hacim filtreleri
+    if stock['volume'] < MIN_VOLUME:
+        reasons.append(f"Hacim {stock['volume']:,}, minimum {MIN_VOLUME:,} olması bekleniyordu.")
+    if not (MIN_VOLUME_RATIO <= stock['volume_ratio'] <= MAX_VOLUME_RATIO):
+        reasons.append(f"Hacim oranı {stock['volume_ratio']:.2f}, {MIN_VOLUME_RATIO}-{MAX_VOLUME_RATIO} aralığında değil.")
+
+    # Bollinger Bands filtreleri
+    if not (BB_POSITION_MIN <= stock['bb_position'] <= BB_POSITION_MAX):
+        reasons.append(f"Bollinger pozisyonu %{stock['bb_position']:.1f}, %{BB_POSITION_MIN}-%{BB_POSITION_MAX} aralığında değil.")
+
+    # Stochastic filtreleri
+    if not (MIN_STOCH_K <= stock['stoch_k'] <= MAX_STOCH_K):
+        reasons.append(f"Stochastic K %{stock['stoch_k']:.1f}, %{MIN_STOCH_K}-%{MAX_STOCH_K} aralığında değil.")
+
+    # Volatilite filtreleri
+    if not (MIN_VOLATILITY <= stock['volatility'] <= MAX_VOLATILITY):
+        reasons.append(f"Volatilite %{stock['volatility']:.1f}, %{MIN_VOLATILITY}-%{MAX_VOLATILITY} aralığında değil.")
+
+    return reasons
+
+def display_recommendations(results, all_results):
+    """Hisse önerilerini ve sebeplerini göster"""
     if not results:
         print("\n❌ Kriterlere uygun hisse bulunamadı!")
-    
-    # Kriterlere uygun olanları göster
-    if results:
-        sorted_results = sorted(results, key=lambda x: x['rsi'], reverse=True)
+    else:
         print(f"\n{'='*160}")
-        print(f"KRİTERLERE UYGUN HİSSELER ({len(results)} adet)")
+        print(f"HİSSE ÖNERİLERİ VE SEBEPLERİ ({len(results)} adet)")
         print(f"{'='*160}")
-        print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<12} {'Öneri':<10} {'Vade':<10}")
-        print(f"{'-'*160}")
-        
-        for stock in sorted_results:
-            trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
-            ma20_status = "Üst" if stock['price'] > stock['ma_20'] else "Alt"
-            recommendation = determine_recommendation(stock)
-            horizon = determine_investment_horizon(stock)
-            
-            print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
-                  f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
-                  f"{ma20_status:<6} {stock['bb_position']:<6.1f} {stock['stoch_k']:<6.1f} "
-                  f"{stock['volatility']:<6.1f} {stock['volume']:>11,.0f} {recommendation:<10} {horizon:<10}")
-    
-    # Kriterlere uymayanları göster
+        for stock in results:
+            recommendation, reasons = determine_recommendation_with_reasons(stock)
+            print(f"\nHisse: {stock['ticker']}")
+            print(f"Öneri: {recommendation}")
+            print("Sebepler:")
+            for reason in reasons:
+                print(f"  - {reason}")
+
+    # Kriterlere uymayan hisseler
     non_matching_results = [stock for stock in all_results if stock not in results]
     if non_matching_results:
         print(f"\n{'='*160}")
         print(f"KRİTERLERE UYMAYAN HİSSELER ({len(non_matching_results)} adet)")
         print(f"{'='*160}")
-        print(f"{'Kod':<6} {'Fiyat':<8} {'RSI':<6} {'MACD':<8} {'SAR':<8} {'Trend':<6} {'MA20':<6} {'BB%':<6} {'Stoch':<6} {'Vol%':<6} {'Hacim':<12} {'Öneri':<10} {'Vade':<10}")
-        print(f"{'-'*160}")
-        
         for stock in non_matching_results:
-            trend_text = "Yük" if stock['sar_trend'] == 1 else "Düş"
-            ma20_status = "Üst" if stock['price'] > stock['ma_20'] else "Alt"
-            recommendation = determine_recommendation(stock)
-            horizon = determine_investment_horizon(stock)
-            
-            print(f"{stock['ticker']:<6} {stock['price']:<8.2f} {stock['rsi']:<6.1f} "
-                  f"{stock['macd']:<8.4f} {stock['sar']:<8.2f} {trend_text:<6} "
-                  f"{ma20_status:<6} {stock['bb_position']:<6.1f} {stock['stoch_k']:<6.1f} "
-                  f"{stock['volatility']:<6.1f} {stock['volume']:>11,.0f} {recommendation:<10} {horizon:<10}")
+            print(f"\nHisse: {stock['ticker']}")
+            print("Uymama Sebepleri:")
+            reasons = explain_why_not_matching(stock)
+            for reason in reasons:
+                print(f"  - {reason}")
 
 def show_current_filters():
     """Mevcut filtreleri göster"""
@@ -527,14 +601,14 @@ def main():
     """Ana program"""
     print("🚀 BIST Gelişmiş Filtreli Hisse Tarayıcısı")
     print("="*50)
-    
+
     show_current_filters()
-    
+
     print(f"\n💡 İPUCU: Kodun başındaki global değişkenleri değiştirerek")
     print(f"    filtreleri özelleştirebilirsiniz!")
-    
+
     choice = input(f"\nTüm hisseleri taramak için 't', belirli hisseleri taramak için 'b' seçin (t/b): ").lower()
-    
+
     if choice == 'b':
         selected_stocks = input("Lütfen hisse kodlarını virgülle ayırarak girin (örn: THYAO,AKBNK): ").split(',')
         selected_stocks = [stock.strip().upper() for stock in selected_stocks]
@@ -544,17 +618,8 @@ def main():
     else:
         print("Geçersiz seçim! Program sonlandırılıyor.")
         return
-    
-    display_filtered_results(filtered_results, all_results)
-    
-    if filtered_results:
-        print(f"\n📊 ÖRNEK ANALİZ:")
-        print(f"En yüksek RSI: {max(filtered_results, key=lambda x: x['rsi'])['ticker']} "
-              f"(RSI: {max(filtered_results, key=lambda x: x['rsi'])['rsi']:.1f})")
-        print(f"En yüksek hacim: {max(filtered_results, key=lambda x: x['volume'])['ticker']} "
-              f"(Hacim: {max(filtered_results, key=lambda x: x['volume'])['volume']:,.0f})")
-    else:
-        print("Kriterlere uygun hisse bulunamadı.")
+
+    display_recommendations(filtered_results, all_results)
 
 if __name__ == "__main__":
     main()
