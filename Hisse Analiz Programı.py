@@ -10,42 +10,42 @@ warnings.filterwarnings('ignore')
 # =============================================================================
 
 # RSI Kriterleri
-MIN_RSI = 30          # Minimum RSI değeri (örn: 30 = aşırı satımdan çıkanlar)
-MAX_RSI = 70          # Maksimum RSI değeri (örn: 70 = aşırı alıma girmeyenler)
+MIN_RSI = 40          # Minimum RSI değeri (momentum başlıyor)
+MAX_RSI = 65          # Maksimum RSI değeri (henüz aşırı alım yok)
 
 # MACD Kriterleri
-MACD_POSITIVE = True   # True: MACD pozitif olsun, False: negatif olsun, None: fark etmez
-MACD_HISTOGRAM_POSITIVE = True  # True: MACD histogram pozitif, False: negatif, None: fark etmez
+MACD_POSITIVE = True   # MACD pozitif olmalı (yükseliş ivmesi)
+MACD_HISTOGRAM_POSITIVE = True  # MACD histogram pozitif (yeni momentum)
 
 # Parabolik SAR Kriterleri
-PRICE_ABOVE_SAR = True  # True: Fiyat SAR üstünde, False: SAR altında, None: fark etmez
-SAR_TREND_UP = True     # True: Yükseliş trendi, False: Düşüş trendi, None: fark etmez
+PRICE_ABOVE_SAR = True  # Fiyat SAR üstünde olmalı (yükseliş teyidi)
+SAR_TREND_UP = True     # SAR trendi yukarı (yükseliş trendi)
 
 # Hareketli Ortalama Kriterleri
-PRICE_ABOVE_MA20 = True   # True: Fiyat MA20 üstünde, False: altında, None: fark etmez
-PRICE_ABOVE_MA50 = None   # True: Fiyat MA50 üstünde, False: altında, None: fark etmez
-PRICE_ABOVE_MA200 = None  # True: Fiyat MA200 üstünde, False: altında, None: fark etmez
+PRICE_ABOVE_MA20 = True   # Fiyat MA20 üstünde (kısa vadeli güç)
+PRICE_ABOVE_MA50 = None   # MA50 önemli değil
+PRICE_ABOVE_MA200 = None  # MA200 önemli değil
 
 # Hacim Kriterleri
-MIN_VOLUME = 100000     # Minimum günlük hacim
-MIN_VOLUME_RATIO = 0.5  # Minimum hacim oranı (güncel/20günlük ortalama)
-MAX_VOLUME_RATIO = 10.0 # Maksimum hacim oranı (anormal hacim artışını filtrele)
+MIN_VOLUME = 150000     # Minimum günlük hacim (likidite için biraz daha yüksek)
+MIN_VOLUME_RATIO = 0.8  # Son hacim, ortalamanın en az %80'i olmalı
+MAX_VOLUME_RATIO = 5.0  # Çok anormal hacimler hariç
 
 # Fiyat Kriterleri
-MIN_PRICE = 1.0       # Minimum hisse fiyatı
-MAX_PRICE = 1000.0    # Maksimum hisse fiyatı
+MIN_PRICE = 5.0       # Çok ucuz hisselerden kaçınmak için
+MAX_PRICE = 500.0     # Çok pahalı hisseleri hariç tut
 
 # Bollinger Bands Kriterleri
-BB_POSITION_MIN = 0.0   # Bollinger Bands içindeki minimum pozisyon (0-100)
-BB_POSITION_MAX = 100.0 # Bollinger Bands içindeki maksimum pozisyon (0-100)
+BB_POSITION_MIN = 30.0   # Alt banda yakın fırsatlar (30-80 arası)
+BB_POSITION_MAX = 80.0
 
 # Stochastic Kriterleri
-MIN_STOCH_K = 20      # Minimum Stochastic %K değeri
-MAX_STOCH_K = 80      # Maksimum Stochastic %K değeri
+MIN_STOCH_K = 30      # Dipten yeni çıkanlar
+MAX_STOCH_K = 85      # Aşırı alıma girmemişler
 
 # Volatilite Kriterleri
-MIN_VOLATILITY = 0.0  # Minimum 20 günlük volatilite (%)
-MAX_VOLATILITY = 50.0 # Maksimum 20 günlük volatilite (%)
+MIN_VOLATILITY = 2.0   # Çok durağan olmasın
+MAX_VOLATILITY = 25.0  # Çok oynak olmasın (riskli kaçınmak için)
 
 # =============================================================================
 
