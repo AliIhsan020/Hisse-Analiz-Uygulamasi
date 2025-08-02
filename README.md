@@ -29,6 +29,11 @@ Bu Python programı, Borsa İstanbul (BIST) hisselerini teknik analiz göstergel
 4. Belirli hisseleri seçtiyseniz, hisse kodlarını virgülle ayırarak girin (örn: `THYAO,AKBNK`).
 5. Sonuçlar ekrana yazdırılır.
 
+> **Not:**  
+> - Tüm hisseler tarandığında **sadece kriterlere uyan hisseler** gösterilir.  
+> - Eğer hiç uygun hisse bulunamazsa, **kriterlere en yakın 3 hisse ve uymama sebepleri** gösterilir.
+> - Belirli hisse kodları girildiğinde ise **hem uyanlar hem de uymayanlar ve sebepleri** gösterilir.
+
 ## Filtre Kriterleri
 
 Filtreler, kodun başındaki global değişkenlerle kolayca değiştirilebilir. Örneğin:

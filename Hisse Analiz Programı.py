@@ -6,51 +6,43 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # =============================================================================
-# GLOBAL FİLTRE KRİTERLERİ - İSTEDİĞİNİZ GİBİ DEĞİŞTİREBİLİRSİNİZ
+# GÜNCELLENMIŞ FİLTRE KRİTERLERİ
 # =============================================================================
 
 # RSI Kriterleri
-MIN_RSI = 40          # Minimum RSI değeri (momentum başlıyor)
-MAX_RSI = 65          # Maksimum RSI değeri (henüz aşırı alım yok)
+MIN_RSI = 40          # Minimum RSI değeri
+MAX_RSI = 60          # Maksimum RSI değeri (>60 ise alma)
 
 # MACD Kriterleri
-MACD_POSITIVE = True   # MACD pozitif olmalı (yükseliş ivmesi)
-MACD_HISTOGRAM_POSITIVE = True  # MACD histogram pozitif (yeni momentum)
-
-# Parabolik SAR Kriterleri
-PRICE_ABOVE_SAR = True  # Fiyat SAR üstünde olmalı (yükseliş teyidi)
-SAR_TREND_UP = True     # SAR trendi yukarı (yükseliş trendi)
-
-# Hareketli Ortalama Kriterleri
-PRICE_ABOVE_MA20 = True   # Fiyat MA20 üstünde (kısa vadeli güç)
-PRICE_ABOVE_MA50 = None   # MA50 önemli değil
-PRICE_ABOVE_MA200 = None  # MA200 önemli değil
+MACD_CROSSOVER = True    # MACD çizgisi sinyal çizgisini aşağıdan yukarı kesmiş olmalı
+MACD_HISTOGRAM_POSITIVE = True  # MACD histogram pozitif olmalı
 
 # Hacim Kriterleri
-MIN_VOLUME = 150000     # Minimum günlük hacim (likidite için biraz daha yüksek)
-MIN_VOLUME_RATIO = 0.8  # Son hacim, ortalamanın en az %80'i olmalı
-MAX_VOLUME_RATIO = 5.0  # Çok anormal hacimler hariç
+MIN_VOLUME = 150000     # Minimum günlük hacim
+VOLUME_INCREASE_MIN = 1.2  # Son gün hacim %20 artmış olmalı
+
+# EMA Kriterleri
+EMA20_ABOVE_EMA50 = True    # EMA20 > EMA50
+PRICE_NEAR_EMA20 = True     # Fiyat EMA20'ye yakın ama çok üstünde olmamalı
+MAX_PRICE_EMA20_DISTANCE = 0.05  # Fiyat EMA20'den maksimum %5 uzakta olabilir
+
+# ATR Kriterleri (Günlük hareket)
+MIN_ATR_PERCENT = 3.0   # Minimum %3 günlük hareket
+MAX_ATR_PERCENT = 6.0   # Maksimum %6 günlük hareket
+
+# Destek/Direnç Kriterleri
+NEAR_SUPPORT = True     # Fiyat destek bölgesine yakın olmalı
+MAX_SUPPORT_DISTANCE = 0.03  # Destekten maksimum %3 uzakta
+MAX_STOP_LOSS_DISTANCE = 0.03  # Stop-loss mesafesi %3'ü geçmemeli
+RESISTANCE_POTENTIAL = True   # 2-3 gün içinde direnç seviyesine ulaşma potansiyeli
+MAX_RESISTANCE_DISTANCE = 0.08  # Dirençten maksimum %8 uzakta (2-3 günde ulaşılabilir)
 
 # Fiyat Kriterleri
-MIN_PRICE = 5.0       # Çok ucuz hisselerden kaçınmak için
-MAX_PRICE = 500.0     # Çok pahalı hisseleri hariç tut
+MIN_PRICE = 3.0
+MAX_PRICE = 500.0
 
-# Bollinger Bands Kriterleri
-BB_POSITION_MIN = 30.0   # Alt banda yakın fırsatlar (30-80 arası)
-BB_POSITION_MAX = 80.0
-
-# Stochastic Kriterleri
-MIN_STOCH_K = 30      # Dipten yeni çıkanlar
-MAX_STOCH_K = 85      # Aşırı alıma girmemişler
-
-# Volatilite Kriterleri
-MIN_VOLATILITY = 2.0   # Çok durağan olmasın
-MAX_VOLATILITY = 25.0  # Çok oynak olmasın (riskli kaçınmak için)
-
-# =============================================================================
-
-# BIST hisse kodları (genişletilmiş liste)
-BIST_STOCKS = [
+# BIST 100 hisse kodları (güncellenmiş liste)
+BIST100_STOCKS = [
     'THYAO', 'AKBNK', 'ISCTR', 'GARAN', 'VAKBN', 'SASA', 'KCHOL', 'ARCLK', 
     'TUPRS', 'EREGL', 'HALKB', 'TCELL', 'BIMAS', 'SAHOL', 'ASELS', 'KOZAL',
     'PGSUS', 'MGROS', 'SOKM', 'ENKAI', 'OYAKC', 'TOASO', 'PETKM', 'TKFEN',
@@ -66,10 +58,7 @@ BIST_STOCKS = [
     'ANSGR', 'ARDYZ', 'ASTOR', 'AVGYO', 'AVHOL', 'AVTUR', 'AYCES', 'AYEN',
     'AYGAZ', 'BAKAB', 'BANVT', 'BASGZ', 'BAYRK', 'BEGYO', 'BERA', 'BEYAZ',
     'BFREN', 'BIGYO', 'BIOEN', 'BJKAS', 'BLCYT', 'BMSCH', 'BMSTL', 'BNTAS',
-    'BOBET', 'BOLUC', 'BOSSA', 'BRKO', 'BRKSN', 'BRKVY', 'BSOKE', 'BTCIM',
-    'BUCIM', 'BURCE', 'BURVA', 'CCOLA', 'CEMAS', 'CEMTS', 'CIMSA', 'CLEBI',
-    'CMBTN', 'CMENT', 'CONSE', 'COSMO', 'CRDFA', 'CRFSA', 'CUSAN', 'CVKMD',
-    'CWENE', 'DAGI', 'DAPGM', 'DARDL', 'DENGE', 'DERHL', 'DERIM', 'DESA'
+    'BOBET', 'BOLUC', 'BOSSA', 'BRKO', 'BRKSN', 'BRKVY', 'BSOKE', 'BTCIM'
 ]
 
 def calculate_rsi(prices, period=14):
@@ -81,6 +70,10 @@ def calculate_rsi(prices, period=14):
     rsi = 100 - (100 / (1 + rs))
     return rsi
 
+def calculate_ema(prices, period):
+    """EMA hesaplama fonksiyonu"""
+    return prices.ewm(span=period).mean()
+
 def calculate_macd(prices, fast=12, slow=26, signal=9):
     """MACD hesaplama fonksiyonu"""
     ema_fast = prices.ewm(span=fast).mean()
@@ -90,70 +83,52 @@ def calculate_macd(prices, fast=12, slow=26, signal=9):
     histogram = macd_line - signal_line
     return macd_line, signal_line, histogram
 
-def calculate_parabolic_sar(high, low, close, af_start=0.02, af_increment=0.02, af_max=0.2):
-    """Parabolik SAR hesaplama fonksiyonu"""
-    length = len(close)
-    sar = np.zeros(length)
-    trend = np.zeros(length)
-    af = np.zeros(length)
-    ep = np.zeros(length)
+def calculate_atr(high, low, close, period=14):
+    """ATR (Average True Range) hesaplama"""
+    high_low = high - low
+    high_close = np.abs(high - close.shift())
+    low_close = np.abs(low - close.shift())
     
-    sar[0] = low.iloc[0]
-    trend[0] = 1
-    af[0] = af_start
-    ep[0] = high.iloc[0]
+    ranges = pd.concat([high_low, high_close, low_close], axis=1)
+    true_range = ranges.max(axis=1)
+    atr = true_range.rolling(window=period).mean()
     
-    for i in range(1, length):
-        if trend[i-1] == 1:
-            sar[i] = sar[i-1] + af[i-1] * (ep[i-1] - sar[i-1])
-            
-            if low.iloc[i] <= sar[i]:
-                trend[i] = -1
-                af[i] = af_start
-                sar[i] = ep[i-1]
-                ep[i] = low.iloc[i]
-            else:
-                trend[i] = 1
-                if high.iloc[i] > ep[i-1]:
-                    af[i] = min(af[i-1] + af_increment, af_max)
-                    ep[i] = high.iloc[i]
-                else:
-                    af[i] = af[i-1]
-                    ep[i] = ep[i-1]
-        else:
-            sar[i] = sar[i-1] + af[i-1] * (ep[i-1] - sar[i-1])
-            
-            if high.iloc[i] >= sar[i]:
-                trend[i] = 1
-                af[i] = af_start
-                sar[i] = ep[i-1]
-                ep[i] = high.iloc[i]
-            else:
-                trend[i] = -1
-                if low.iloc[i] < ep[i-1]:
-                    af[i] = min(af[i-1] + af_increment, af_max)
-                    ep[i] = low.iloc[i]
-                else:
-                    af[i] = af[i-1]
-                    ep[i] = ep[i-1]
-    
-    return pd.Series(sar, index=close.index), pd.Series(trend, index=close.index)
+    return atr
 
-def calculate_bollinger_bands(prices, period=20, std_dev=2):
-    """Bollinger Bands hesaplama"""
-    sma = prices.rolling(window=period).mean()
-    std = prices.rolling(window=period).std()
-    upper_band = sma + (std * std_dev)
-    lower_band = sma - (std * std_dev)
-    return upper_band, sma, lower_band
+def find_support_resistance_levels(prices, window=20):
+    """Destek ve direnç seviyelerini bul"""
+    # Son window günlük veriler üzerinden yerel min/max bul
+    supports = []
+    resistances = []
+    
+    for i in range(window, len(prices) - window):
+        # Yerel minimum (destek)
+        if prices.iloc[i] == prices.iloc[i-window:i+window].min():
+            supports.append(prices.iloc[i])
+        
+        # Yerel maksimum (direnç)
+        if prices.iloc[i] == prices.iloc[i-window:i+window].max():
+            resistances.append(prices.iloc[i])
+    
+    # En son 2 destek ve direnç seviyesini al
+    supports = sorted(supports)[-2:] if len(supports) >= 2 else supports
+    resistances = sorted(resistances, reverse=True)[:2] if len(resistances) >= 2 else resistances
+    
+    return supports, resistances
 
-def calculate_stochastic(high, low, close, k_period=14, d_period=3):
-    """Stochastic Oscillator hesaplama"""
-    lowest_low = low.rolling(window=k_period).min()
-    highest_high = high.rolling(window=k_period).max()
-    k_percent = 100 * ((close - lowest_low) / (highest_high - lowest_low))
-    d_percent = k_percent.rolling(window=d_period).mean()
-    return k_percent, d_percent
+def check_macd_crossover(macd_line, signal_line, lookback=5):
+    """MACD çizgisinin sinyal çizgisini aşağıdan yukarı kesip kesmediğini kontrol et"""
+    if len(macd_line) < lookback + 1:
+        return False
+    
+    # Son lookback gün içinde crossover var mı?
+    for i in range(len(macd_line) - lookback, len(macd_line)):
+        if i > 0:
+            # Önceki gün MACD < Signal, bugün MACD > Signal
+            if (macd_line.iloc[i-1] < signal_line.iloc[i-1] and 
+                macd_line.iloc[i] > signal_line.iloc[i]):
+                return True
+    return False
 
 def analyze_stock_comprehensive(ticker):
     """Kapsamlı hisse analizi"""
@@ -163,7 +138,7 @@ def analyze_stock_comprehensive(ticker):
             bist_ticker += '.IS'
         
         stock = yf.Ticker(bist_ticker)
-        hist = stock.history(period="6mo")  # 6 aylık veri
+        hist = stock.history(period="6mo")
         
         if len(hist) < 50:
             return None
@@ -176,13 +151,12 @@ def analyze_stock_comprehensive(ticker):
         # Temel veriler
         current_price = close.iloc[-1]
         current_volume = volume.iloc[-1]
-        avg_volume_20 = volume.rolling(window=20).mean().iloc[-1]
-        volume_ratio = current_volume / avg_volume_20
+        prev_volume = volume.iloc[-2] if len(volume) > 1 else current_volume
+        volume_increase = current_volume / prev_volume if prev_volume > 0 else 1
         
-        # Hareketli ortalamalar
-        ma_20 = close.rolling(window=20).mean().iloc[-1]
-        ma_50 = close.rolling(window=50).mean().iloc[-1] if len(close) >= 50 else None
-        ma_200 = close.rolling(window=200).mean().iloc[-1] if len(close) >= 200 else None
+        # EMA hesaplamaları
+        ema_20 = calculate_ema(close, 20).iloc[-1]
+        ema_50 = calculate_ema(close, 50).iloc[-1] if len(close) >= 50 else None
         
         # RSI
         rsi = calculate_rsi(close).iloc[-1]
@@ -190,51 +164,59 @@ def analyze_stock_comprehensive(ticker):
         # MACD
         macd_line, signal_line, histogram = calculate_macd(close)
         current_macd = macd_line.iloc[-1]
+        current_signal = signal_line.iloc[-1]
         current_histogram = histogram.iloc[-1]
+        macd_crossover = check_macd_crossover(macd_line, signal_line)
         
-        # Parabolik SAR
-        sar_values, sar_trend = calculate_parabolic_sar(high, low, close)
-        current_sar = sar_values.iloc[-1]
-        current_trend = sar_trend.iloc[-1]
+        # ATR
+        atr = calculate_atr(high, low, close).iloc[-1]
+        atr_percent = (atr / current_price) * 100
         
-        # Bollinger Bands
-        bb_upper, bb_middle, bb_lower = calculate_bollinger_bands(close)
-        current_bb_upper = bb_upper.iloc[-1]
-        current_bb_lower = bb_lower.iloc[-1]
-        bb_position = ((current_price - current_bb_lower) / (current_bb_upper - current_bb_lower)) * 100
+        # Destek ve direnç seviyeleri
+        supports, resistances = find_support_resistance_levels(close)
         
-        # Stochastic
-        stoch_k, stoch_d = calculate_stochastic(high, low, close)
-        current_stoch_k = stoch_k.iloc[-1]
+        # Destek ve direnç uzaklıkları
+        support_distances = []
+        resistance_distances = []
         
-        # Volatilite (20 günlük)
-        returns = close.pct_change().dropna()
-        volatility = returns.rolling(window=20).std().iloc[-1] * np.sqrt(252) * 100  # Yıllık volatilite %
+        for support in supports:
+            distance = ((current_price - support) / support) * 100
+            support_distances.append(distance)
+        
+        for resistance in resistances:
+            distance = ((resistance - current_price) / current_price) * 100
+            resistance_distances.append(distance)
+        
+        # En yakın destek ve direnç
+        nearest_support = min(supports) if supports else None
+        nearest_resistance = min(resistances) if resistances else None
         
         return {
             'ticker': ticker.upper(),
             'price': current_price,
-            'volume': current_volume,
-            'volume_ratio': volume_ratio,
+            'volume_increase': volume_increase,
             'rsi': rsi,
+            'ema_20': ema_20,
+            'ema_50': ema_50,
             'macd': current_macd,
-            'macd_hist': current_histogram,
-            'sar': current_sar,
-            'sar_trend': current_trend,
-            'ma_20': ma_20,
-            'ma_50': ma_50,
-            'ma_200': ma_200,
-            'bb_position': bb_position,
-            'stoch_k': current_stoch_k,
-            'volatility': volatility,
-            'historical_close': close  # Add historical close prices for support/resistance analysis
+            'signal': current_signal,
+            'histogram': current_histogram,
+            'macd_crossover': macd_crossover,
+            'atr_percent': atr_percent,
+            'supports': supports,
+            'resistances': resistances,
+            'support_distances': support_distances,
+            'resistance_distances': resistance_distances,
+            'nearest_support': nearest_support,
+            'nearest_resistance': nearest_resistance
         }
         
     except Exception as e:
+        print(f"Hata {ticker}: {e}")
         return None
 
-def check_filters(stock):
-    """Global filtrelere göre hisse kontrolü"""
+def check_new_filters(stock):
+    """Yeni filtrelere göre hisse kontrolü"""
     if not stock:
         return False
     
@@ -242,384 +224,318 @@ def check_filters(stock):
     if not (MIN_PRICE <= stock['price'] <= MAX_PRICE):
         return False
     
-    # RSI filtreleri
+    # RSI filtreleri (40-60 arası, >60 ise alma)
     if not (MIN_RSI <= stock['rsi'] <= MAX_RSI):
         return False
     
-    # MACD filtreleri
-    if MACD_POSITIVE is not None:
-        if MACD_POSITIVE and stock['macd'] <= 0:
-            return False
-        if not MACD_POSITIVE and stock['macd'] >= 0:
-            return False
-    
-    if MACD_HISTOGRAM_POSITIVE is not None:
-        if MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] <= 0:
-            return False
-        if not MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] >= 0:
-            return False
-    
-    # Parabolik SAR filtreleri
-    if PRICE_ABOVE_SAR is not None:
-        price_above_sar = stock['price'] > stock['sar']
-        if PRICE_ABOVE_SAR != price_above_sar:
-            return False
-    
-    if SAR_TREND_UP is not None:
-        trend_up = stock['sar_trend'] == 1
-        if SAR_TREND_UP != trend_up:
-            return False
-    
-    # Hareketli ortalama filtreleri
-    if PRICE_ABOVE_MA20 is not None:
-        price_above_ma20 = stock['price'] > stock['ma_20']
-        if PRICE_ABOVE_MA20 != price_above_ma20:
-            return False
-    
-    if PRICE_ABOVE_MA50 is not None and stock['ma_50']:
-        price_above_ma50 = stock['price'] > stock['ma_50']
-        if PRICE_ABOVE_MA50 != price_above_ma50:
-            return False
-    
-    if PRICE_ABOVE_MA200 is not None and stock['ma_200']:
-        price_above_ma200 = stock['price'] > stock['ma_200']
-        if PRICE_ABOVE_MA200 != price_above_ma200:
-            return False
-    
-    # Hacim filtreleri
-    if stock['volume'] < MIN_VOLUME:
+    # MACD crossover kontrolü
+    if MACD_CROSSOVER and not stock['macd_crossover']:
         return False
     
-    if not (MIN_VOLUME_RATIO <= stock['volume_ratio'] <= MAX_VOLUME_RATIO):
+    # MACD histogram pozitif kontrolü
+    if MACD_HISTOGRAM_POSITIVE and stock['histogram'] <= 0:
         return False
     
-    # Bollinger Bands filtreleri
-    if not (BB_POSITION_MIN <= stock['bb_position'] <= BB_POSITION_MAX):
+    # Hacim artış kontrolü
+    if stock['volume_increase'] < VOLUME_INCREASE_MIN:
         return False
     
-    # Stochastic filtreleri
-    if not (MIN_STOCH_K <= stock['stoch_k'] <= MAX_STOCH_K):
+    # EMA20 > EMA50 kontrolü
+    if EMA20_ABOVE_EMA50 and stock['ema_50']:
+        if stock['ema_20'] <= stock['ema_50']:
+            return False
+    
+    # Fiyat EMA20'ye yakın kontrolü
+    if PRICE_NEAR_EMA20:
+        price_ema20_distance = abs(stock['price'] - stock['ema_20']) / stock['ema_20']
+        if price_ema20_distance > MAX_PRICE_EMA20_DISTANCE:
+            return False
+    
+    # ATR kontrolü
+    if not (MIN_ATR_PERCENT <= stock['atr_percent'] <= MAX_ATR_PERCENT):
         return False
     
-    # Volatilite filtreleri
-    if not (MIN_VOLATILITY <= stock['volatility'] <= MAX_VOLATILITY):
-        return False
+    # Destek yakınlığı kontrolü
+    if NEAR_SUPPORT and stock['nearest_support']:
+        support_distance = abs(stock['price'] - stock['nearest_support']) / stock['nearest_support']
+        if support_distance > MAX_SUPPORT_DISTANCE:
+            return False
+    
+    # Stop-loss mesafesi kontrolü
+    if stock['nearest_support']:
+        stop_loss_distance = (stock['price'] - stock['nearest_support']) / stock['price']
+        if stop_loss_distance > MAX_STOP_LOSS_DISTANCE:
+            return False
+    
+    # Direnç potansiyeli kontrolü
+    if RESISTANCE_POTENTIAL and stock['nearest_resistance']:
+        resistance_distance = (stock['nearest_resistance'] - stock['price']) / stock['price']
+        if resistance_distance > MAX_RESISTANCE_DISTANCE:
+            return False
     
     return True
-
-def scan_and_filter_stocks(selected_stocks=None):
-    """Seçilen hisseleri veya tüm hisseleri tara ve filtrele"""
-    stocks_to_scan = selected_stocks if selected_stocks else BIST_STOCKS
-    print(f"🔍 {'Seçilen' if selected_stocks else 'Tüm'} hisseler taranıyor ve filtreleniyor...")
-    print("Bu işlem birkaç dakika sürebilir...\n")
-    
-    all_results = []
-    filtered_results = []
-    processed = 0
-    
-    for ticker in stocks_to_scan:  # Corrected indentation
-        processed += 1
-        print(f"İşleniyor: {ticker} ({processed}/{len(stocks_to_scan)})", end='\r')
-        
-        result = analyze_stock_comprehensive(ticker)
-        if result:
-            all_results.append(result)
-            if check_filters(result):
-                filtered_results.append(result)
-    
-    print(f"\n✅ Toplam {len(all_results)} hisse analiz edildi.")
-    print(f"🎯 {len(filtered_results)} hisse kriterlere uygun bulundu.")
-    
-    return filtered_results, all_results
 
 def calculate_proximity_score(stock):
     """Hissenin kriterlere ne kadar yakın olduğunu hesapla"""
     score = 0
     max_score = 0
     
-    # RSI skorunu hesapla
+    # RSI skoru
     max_score += 1
     if MIN_RSI <= stock['rsi'] <= MAX_RSI:
         score += 1
     else:
-        # RSI aralığına ne kadar yakın olduğuna göre kısmi puan
         if stock['rsi'] < MIN_RSI:
             distance = MIN_RSI - stock['rsi']
-            score += max(0, 1 - distance/20)  # 20 puan fark için lineer azalış
+            score += max(0, 1 - distance/20)
         else:
             distance = stock['rsi'] - MAX_RSI
             score += max(0, 1 - distance/20)
     
-    # MACD skorları
-    if MACD_POSITIVE is not None:
-        max_score += 1
-        if (MACD_POSITIVE and stock['macd'] > 0) or (not MACD_POSITIVE and stock['macd'] <= 0):
-            score += 1
-        else:
-            score += 0.5  # Kısmi puan
-    
-    if MACD_HISTOGRAM_POSITIVE is not None:
-        max_score += 1
-        if (MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] > 0) or (not MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] <= 0):
-            score += 1
-        else:
-            score += 0.5
-    
-    # SAR skorları
-    if PRICE_ABOVE_SAR is not None:
-        max_score += 1
-        price_above_sar = stock['price'] > stock['sar']
-        if PRICE_ABOVE_SAR == price_above_sar:
-            score += 1
-        else:
-            score += 0.3
-    
-    if SAR_TREND_UP is not None:
-        max_score += 1
-        trend_up = stock['sar_trend'] == 1
-        if SAR_TREND_UP == trend_up:
-            score += 1
-        else:
-            score += 0.3
-    
-    # MA skorları
-    if PRICE_ABOVE_MA20 is not None:
-        max_score += 1
-        price_above_ma20 = stock['price'] > stock['ma_20']
-        if PRICE_ABOVE_MA20 == price_above_ma20:
-            score += 1
-        else:
-            score += 0.4
-    
-    if PRICE_ABOVE_MA50 is not None and stock['ma_50']:
-        max_score += 1
-        price_above_ma50 = stock['price'] > stock['ma_50']
-        if PRICE_ABOVE_MA50 == price_above_ma50:
-            score += 1
-        else:
-            score += 0.4
-    
-    # Fiyat aralığı skoru
+    # MACD crossover skoru
     max_score += 1
-    if MIN_PRICE <= stock['price'] <= MAX_PRICE:
-        score += 1
-    else:
-        score += 0.2
-    
-    # Hacim skoru
-    max_score += 1
-    if stock['volume'] >= MIN_VOLUME and MIN_VOLUME_RATIO <= stock['volume_ratio'] <= MAX_VOLUME_RATIO:
-        score += 1
-    else:
-        # Hacim kriterlerine yakınlık
-        volume_score = 0.5 if stock['volume'] >= MIN_VOLUME/2 else 0.2
-        ratio_score = 0.5 if MIN_VOLUME_RATIO/2 <= stock['volume_ratio'] <= MAX_VOLUME_RATIO*2 else 0.2
-        score += max(volume_score, ratio_score)
-    
-    # Bollinger Bands skoru
-    max_score += 1
-    if BB_POSITION_MIN <= stock['bb_position'] <= BB_POSITION_MAX:
+    if stock['macd_crossover']:
         score += 1
     else:
         score += 0.3
     
-    # Stochastic skoru
+    # MACD histogram skoru
     max_score += 1
-    if MIN_STOCH_K <= stock['stoch_k'] <= MAX_STOCH_K:
+    if stock['histogram'] > 0:
         score += 1
     else:
         score += 0.3
     
-    # Volatilite skoru
+    # Hacim artış skoru
     max_score += 1
-    if MIN_VOLATILITY <= stock['volatility'] <= MAX_VOLATILITY:
+    if stock['volume_increase'] >= VOLUME_INCREASE_MIN:
+        score += 1
+    else:
+        score += max(0, stock['volume_increase'] / VOLUME_INCREASE_MIN)
+    
+    # EMA skoru
+    if stock['ema_50']:
+        max_score += 1
+        if stock['ema_20'] > stock['ema_50']:
+            score += 1
+        else:
+            score += 0.3
+    
+    # Fiyat EMA20 yakınlık skoru
+    max_score += 1
+    price_ema20_distance = abs(stock['price'] - stock['ema_20']) / stock['ema_20']
+    if price_ema20_distance <= MAX_PRICE_EMA20_DISTANCE:
+        score += 1
+    else:
+        score += max(0, 1 - price_ema20_distance/0.1)
+    
+    # ATR skoru
+    max_score += 1
+    if MIN_ATR_PERCENT <= stock['atr_percent'] <= MAX_ATR_PERCENT:
         score += 1
     else:
         score += 0.3
     
     return score / max_score if max_score > 0 else 0
 
-def calculate_support_resistance(prices):
-    """Destek ve direnç seviyelerini hesapla"""
-    support = prices.min()
-    resistance = prices.max()
-    return support, resistance
-
-def determine_recommendation_with_reasons(stock):
-    """Hisse için öneri ve sebeplerini belirle"""
-    reasons = []
-    recommendation = "Tut"
-
-    # Destek ve direnç analizi
-    if 'historical_close' in stock:
-        support, resistance = calculate_support_resistance(stock['historical_close'][-20:])
-        if stock['price'] > resistance:
-            recommendation = "Al"
-            reasons.append(f"Fiyat {resistance:.2f} direnç seviyesini hacimli kırdı.")
-        elif stock['price'] < support:
-            recommendation = "Sat"
-            reasons.append(f"Fiyat {support:.2f} destek seviyesinin altına hacimsiz düştü.")
-        else:
-            reasons.append(f"Fiyat destek ({support:.2f}) ve direnç ({resistance:.2f}) arasında hareket ediyor.")
-    else:
-        reasons.append("Destek ve direnç analizi için yeterli veri yok.")
-
-    # RSI analizi
-    if stock['rsi'] < 30:
-        recommendation = "Al"
-        reasons.append("RSI aşırı satım bölgesinde.")
-    elif stock['rsi'] > 70:
-        recommendation = "Sat"
-        reasons.append("RSI aşırı alım bölgesinde.")
-
-    # MACD analizi
-    if stock['macd_hist'] > 0:
-        reasons.append("MACD histogram pozitif, yükseliş sinyali.")
-    else:
-        reasons.append("MACD histogram negatif, düşüş sinyali.")
-
-    return recommendation, reasons
+def format_stock_summary(stock):
+    """Hisse özet bilgilerini formatla"""
+    # En yakın 2 destek uzaklığı
+    support_text = "Yok"
+    if len(stock['support_distances']) >= 2:
+        support_text = f"{stock['support_distances'][0]:.1f}%, {stock['support_distances'][1]:.1f}%"
+    elif len(stock['support_distances']) == 1:
+        support_text = f"{stock['support_distances'][0]:.1f}%"
+    
+    # En yakın 2 direnç uzaklığı
+    resistance_text = "Yok"
+    if len(stock['resistance_distances']) >= 2:
+        resistance_text = f"{stock['resistance_distances'][0]:.1f}%, {stock['resistance_distances'][1]:.1f}%"
+    elif len(stock['resistance_distances']) == 1:
+        resistance_text = f"{stock['resistance_distances'][0]:.1f}%"
+    
+    return {
+        "Hisse": stock['ticker'],
+        "En Yakın 2 Destek Uzaklığı": support_text,
+        "En Yakın 2 Direnç Uzaklığı": resistance_text,
+        "Hacim Artışı": f"%{(stock['volume_increase']-1)*100:.1f}",
+        "ATR": f"%{stock['atr_percent']:.1f}"
+    }
 
 def explain_why_not_matching(stock):
-    """Hisse neden kriterlere uymuyor, detaylı açıklama"""
+    """Hissenin neden filtrelere uymadığını açıklar"""
     reasons = []
-
-    # Fiyat filtreleri
+    
     if not (MIN_PRICE <= stock['price'] <= MAX_PRICE):
-        reasons.append(f"Fiyat {stock['price']:.2f} TL, {MIN_PRICE}-{MAX_PRICE} TL aralığında değil.")
-
-    # RSI filtreleri
+        reasons.append(f"Fiyat {stock['price']:.2f} TL, aralık dışında ({MIN_PRICE}-{MAX_PRICE} TL)")
+    
     if not (MIN_RSI <= stock['rsi'] <= MAX_RSI):
-        reasons.append(f"RSI {stock['rsi']:.1f}, {MIN_RSI}-{MAX_RSI} aralığında değil.")
-
-    # MACD filtreleri
-    if MACD_POSITIVE is not None:
-        if MACD_POSITIVE and stock['macd'] <= 0:
-            reasons.append("MACD negatif, pozitif olması bekleniyordu.")
-        if not MACD_POSITIVE and stock['macd'] >= 0:
-            reasons.append("MACD pozitif, negatif olması bekleniyordu.")
-    if MACD_HISTOGRAM_POSITIVE is not None:
-        if MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] <= 0:
-            reasons.append("MACD histogram negatif, pozitif olması bekleniyordu.")
-        if not MACD_HISTOGRAM_POSITIVE and stock['macd_hist'] >= 0:
-            reasons.append("MACD histogram pozitif, negatif olması bekleniyordu.")
-
-    # Parabolik SAR filtreleri
-    if PRICE_ABOVE_SAR is not None:
-        price_above_sar = stock['price'] > stock['sar']
-        if PRICE_ABOVE_SAR != price_above_sar:
-            reasons.append(f"Fiyat {'üstünde' if price_above_sar else 'altında'}, SAR {'üstünde' if PRICE_ABOVE_SAR else 'altında'} olması bekleniyordu.")
-    if SAR_TREND_UP is not None:
-        trend_up = stock['sar_trend'] == 1
-        if SAR_TREND_UP != trend_up:
-            reasons.append(f"SAR trendi {'yukarı' if trend_up else 'aşağı'}, {'yukarı' if SAR_TREND_UP else 'aşağı'} olması bekleniyordu.")
-
-    # Hareketli ortalama filtreleri
-    if PRICE_ABOVE_MA20 is not None:
-        price_above_ma20 = stock['price'] > stock['ma_20']
-        if PRICE_ABOVE_MA20 != price_above_ma20:
-            reasons.append(f"Fiyat {'üstünde' if price_above_ma20 else 'altında'}, MA20 {'üstünde' if PRICE_ABOVE_MA20 else 'altında'} olması bekleniyordu.")
-    if PRICE_ABOVE_MA50 is not None and stock['ma_50']:
-        price_above_ma50 = stock['price'] > stock['ma_50']
-        if PRICE_ABOVE_MA50 != price_above_ma50:
-            reasons.append(f"Fiyat {'üstünde' if price_above_ma50 else 'altında'}, MA50 {'üstünde' if PRICE_ABOVE_MA50 else 'altında'} olması bekleniyordu.")
-    if PRICE_ABOVE_MA200 is not None and stock['ma_200']:
-        price_above_ma200 = stock['price'] > stock['ma_200']
-        if PRICE_ABOVE_MA200 != price_above_ma200:
-            reasons.append(f"Fiyat {'üstünde' if price_above_ma200 else 'altında'}, MA200 {'üstünde' if PRICE_ABOVE_MA200 else 'altında'} olması bekleniyordu.")
-
-    # Hacim filtreleri
-    if stock['volume'] < MIN_VOLUME:
-        reasons.append(f"Hacim {stock['volume']:,}, minimum {MIN_VOLUME:,} olması bekleniyordu.")
-    if not (MIN_VOLUME_RATIO <= stock['volume_ratio'] <= MAX_VOLUME_RATIO):
-        reasons.append(f"Hacim oranı {stock['volume_ratio']:.2f}, {MIN_VOLUME_RATIO}-{MAX_VOLUME_RATIO} aralığında değil.")
-
-    # Bollinger Bands filtreleri
-    if not (BB_POSITION_MIN <= stock['bb_position'] <= BB_POSITION_MAX):
-        reasons.append(f"Bollinger pozisyonu %{stock['bb_position']:.1f}, %{BB_POSITION_MIN}-%{BB_POSITION_MAX} aralığında değil.")
-
-    # Stochastic filtreleri
-    if not (MIN_STOCH_K <= stock['stoch_k'] <= MAX_STOCH_K):
-        reasons.append(f"Stochastic K %{stock['stoch_k']:.1f}, %{MIN_STOCH_K}-%{MAX_STOCH_K} aralığında değil.")
-
-    # Volatilite filtreleri
-    if not (MIN_VOLATILITY <= stock['volatility'] <= MAX_VOLATILITY):
-        reasons.append(f"Volatilite %{stock['volatility']:.1f}, %{MIN_VOLATILITY}-%{MAX_VOLATILITY} aralığında değil.")
-
+        reasons.append(f"RSI {stock['rsi']:.1f}, aralık dışında ({MIN_RSI}-{MAX_RSI})")
+    
+    if not stock['macd_crossover']:
+        reasons.append("MACD çizgisi sinyal çizgisini aşağıdan yukarı kesmemiş")
+    
+    if stock['histogram'] <= 0:
+        reasons.append("MACD histogram pozitif değil")
+    
+    if stock['volume_increase'] < VOLUME_INCREASE_MIN:
+        reasons.append(f"Hacim artışı yetersiz (%{(stock['volume_increase']-1)*100:.1f})")
+    
+    if stock['ema_50'] and stock['ema_20'] <= stock['ema_50']:
+        reasons.append("EMA20 EMA50'nin üstünde değil")
+    
+    price_ema20_distance = abs(stock['price'] - stock['ema_20']) / stock['ema_20']
+    if price_ema20_distance > MAX_PRICE_EMA20_DISTANCE:
+        reasons.append(f"Fiyat EMA20'den çok uzak (%{price_ema20_distance*100:.1f})")
+    
+    if not (MIN_ATR_PERCENT <= stock['atr_percent'] <= MAX_ATR_PERCENT):
+        reasons.append(f"ATR aralık dışında (%{stock['atr_percent']:.1f})")
+    
+    if stock['nearest_support']:
+        support_distance = abs(stock['price'] - stock['nearest_support']) / stock['nearest_support']
+        if support_distance > MAX_SUPPORT_DISTANCE:
+            reasons.append(f"Destekten çok uzak (%{support_distance*100:.1f})")
+    
     return reasons
 
-def display_recommendations(results, all_results):
-    """Hisse önerilerini ve sebeplerini göster"""
-    if not results:
-        print("\n❌ Kriterlere uygun hisse bulunamadı!")
-    else:
-        print(f"\n{'='*160}")
-        print(f"HİSSE ÖNERİLERİ VE SEBEPLERİ ({len(results)} adet)")
-        print(f"{'='*160}")
-        for stock in results:
-            recommendation, reasons = determine_recommendation_with_reasons(stock)
-            print(f"\nHisse: {stock['ticker']}")
-            print(f"Öneri: {recommendation}")
-            print("Sebepler:")
-            for reason in reasons:
-                print(f"  - {reason}")
+def scan_and_filter_stocks(selected_stocks=None):
+    """Hisseleri tara ve filtrele"""
+    stocks_to_scan = selected_stocks if selected_stocks else BIST100_STOCKS
+    scan_type = "Seçilen" if selected_stocks else "BIST100"
+    
+    print(f"🔍 {scan_type} hisseler taranıyor...")
+    print("Bu işlem birkaç dakika sürebilir...\n")
+    
+    all_results = []
+    filtered_results = []
+    processed = 0
+    
+    for ticker in stocks_to_scan:
+        processed += 1
+        print(f"İşleniyor: {ticker} ({processed}/{len(stocks_to_scan)})", end='\r')
+        
+        result = analyze_stock_comprehensive(ticker)
+        if result:
+            all_results.append(result)
+            if check_new_filters(result):
+                filtered_results.append(result)
+    
+    print(f"\n✅ Toplam {len(all_results)} hisse analiz edildi.")
+    print(f"🎯 {len(filtered_results)} hisse kriterlere uygun bulundu.\n")
+    
+    return filtered_results, all_results
 
-    # Kriterlere uymayan hisseler
-    non_matching_results = [stock for stock in all_results if stock not in results]
-    if non_matching_results:
-        print(f"\n{'='*160}")
-        print(f"KRİTERLERE UYMAYAN HİSSELER ({len(non_matching_results)} adet)")
-        print(f"{'='*160}")
-        for stock in non_matching_results:
-            print(f"\nHisse: {stock['ticker']}")
-            print("Uymama Sebepleri:")
-            reasons = explain_why_not_matching(stock)
-            for reason in reasons:
-                print(f"  - {reason}")
+def display_results(filtered_results, all_results, is_specific_search=False):
+    """Sonuçları göster"""
+    
+    if is_specific_search:
+        # Belirli hisse araması - hem uygun hem uymayanları göster
+        if filtered_results:
+            print(f"{'='*80}")
+            print(f"KRİTERLERE UYGUN HİSSELER ({len(filtered_results)} adet)")
+            print(f"{'='*80}")
+            
+            table_data = []
+            for stock in filtered_results:
+                table_data.append(format_stock_summary(stock))
+            
+            df = pd.DataFrame(table_data)
+            print(df.to_string(index=False))
+        
+        # Kriterlere uymayanlar
+        non_matching = [s for s in all_results if s not in filtered_results]
+        if non_matching:
+            print(f"\n{'='*80}")
+            print(f"KRİTERLERE UYGUN OLMAYAN HİSSELER ({len(non_matching)} adet)")
+            print(f"{'='*80}")
+            
+            for stock in non_matching:
+                print(f"\n📊 {stock['ticker']}:")
+                summary = format_stock_summary(stock)
+                for key, value in summary.items():
+                    if key != "Hisse":
+                        print(f"   {key}: {value}")
+                
+                reasons = explain_why_not_matching(stock)
+                print("   Uyumsuzluk Sebepleri:")
+                for reason in reasons:
+                    print(f"     • {reason}")
+    
+    else:
+        # BIST100 araması - sadece uygun olanları göster
+        if filtered_results:
+            print(f"{'='*80}")
+            print(f"KRİTERLERE UYGUN HİSSELER ({len(filtered_results)} adet)")
+            print(f"{'='*80}")
+            
+            table_data = []
+            for stock in filtered_results:
+                table_data.append(format_stock_summary(stock))
+            
+            df = pd.DataFrame(table_data)
+            print(df.to_string(index=False))
+        
+        else:
+            # Hiç uygun hisse yok - en yakın 5'i göster
+            print("❌ Kriterlere uygun hisse bulunamadı!")
+            print("\n🔍 Kriterlere en yakın 5 hisse:\n")
+            
+            scored_stocks = []
+            for stock in all_results:
+                score = calculate_proximity_score(stock)
+                scored_stocks.append((score, stock))
+            
+            scored_stocks.sort(reverse=True, key=lambda x: x[0])
+            
+            for i, (score, stock) in enumerate(scored_stocks[:5], 1):
+                print(f"{i}. 📊 {stock['ticker']} (Yakınlık Skoru: {score:.2f})")
+                summary = format_stock_summary(stock)
+                for key, value in summary.items():
+                    if key != "Hisse":
+                        print(f"   {key}: {value}")
+                
+                reasons = explain_why_not_matching(stock)
+                print("   Kriterlere Uymama Sebepleri:")
+                for reason in reasons:
+                    print(f"     • {reason}")
+                print()
 
 def show_current_filters():
     """Mevcut filtreleri göster"""
     print(f"\n{'='*60}")
-    print(f"MEVCUT FİLTRE KRİTERLERİ")
+    print(f"GÜNCEL FİLTRE KRİTERLERİ")
     print(f"{'='*60}")
-    print(f"RSI: {MIN_RSI} - {MAX_RSI}")
-    print(f"MACD Pozitif: {MACD_POSITIVE}")
-    print(f"MACD Histogram Pozitif: {MACD_HISTOGRAM_POSITIVE}")
-    print(f"Fiyat SAR Üstünde: {PRICE_ABOVE_SAR}")
-    print(f"SAR Trend Yukarı: {SAR_TREND_UP}")
-    print(f"Fiyat MA20 Üstünde: {PRICE_ABOVE_MA20}")
-    print(f"Fiyat MA50 Üstünde: {PRICE_ABOVE_MA50}")
-    print(f"Fiyat MA200 Üstünde: {PRICE_ABOVE_MA200}")
-    print(f"Fiyat Aralığı: {MIN_PRICE} - {MAX_PRICE} TL")
-    print(f"Hacim: Min {MIN_VOLUME:,}")
-    print(f"Hacim Oranı: {MIN_VOLUME_RATIO} - {MAX_VOLUME_RATIO}")
-    print(f"Bollinger Position: {BB_POSITION_MIN}% - {BB_POSITION_MAX}%")
-    print(f"Stochastic K: {MIN_STOCH_K} - {MAX_STOCH_K}")
-    print(f"Volatilite: {MIN_VOLATILITY}% - {MAX_VOLATILITY}%")
+    print(f"RSI: {MIN_RSI}-{MAX_RSI} (>{MAX_RSI} ise alma)")
+    print(f"MACD: Çizgi sinyal çizgisini aşağıdan yukarı kesmiş olmalı")
+    print(f"MACD Histogram: Pozitif olmalı")
+    print(f"Hacim: Son gün %{(VOLUME_INCREASE_MIN-1)*100:.0f} artmış olmalı")
+    print(f"EMA: EMA20 > EMA50")
+    print(f"Fiyat-EMA20: Maksimum %{MAX_PRICE_EMA20_DISTANCE*100:.0f} uzaklık")
+    print(f"ATR: %{MIN_ATR_PERCENT}-{MAX_ATR_PERCENT} günlük hareket")
+    print(f"Destek: Maksimum %{MAX_SUPPORT_DISTANCE*100:.0f} uzaklık")
+    print(f"Stop-loss: Maksimum %{MAX_STOP_LOSS_DISTANCE*100:.0f}")
+    print(f"Direnç Potansiyeli: Maksimum %{MAX_RESISTANCE_DISTANCE*100:.0f} uzaklık")
 
 def main():
     """Ana program"""
-    print("🚀 BIST Gelişmiş Filtreli Hisse Tarayıcısı")
-    print("="*50)
+    print("🚀 BIST Gelişmiş Filtreli Hisse Tarayıcısı v2.0")
+    print("="*60)
 
     show_current_filters()
 
-    print(f"\n💡 İPUCU: Kodun başındaki global değişkenleri değiştirerek")
-    print(f"    filtreleri özelleştirebilirsiniz!")
-
-    choice = input(f"\nTüm hisseleri taramak için 't', belirli hisseleri taramak için 'b' seçin (t/b): ").lower()
+    choice = input(f"\nBIST100 taraması için 't', belirli hisseler için 'b' seçin (t/b): ").lower()
 
     if choice == 'b':
-        selected_stocks = input("Lütfen hisse kodlarını virgülle ayırarak girin (örn: THYAO,AKBNK): ").split(',')
+        selected_stocks = input("Hisse kodlarını virgülle ayırarak girin (örn: THYAO,AKBNK): ").split(',')
         selected_stocks = [stock.strip().upper() for stock in selected_stocks]
         filtered_results, all_results = scan_and_filter_stocks(selected_stocks)
+        display_results(filtered_results, all_results, is_specific_search=True)
     elif choice == 't':
         filtered_results, all_results = scan_and_filter_stocks()
+        display_results(filtered_results, all_results, is_specific_search=False)
     else:
         print("Geçersiz seçim! Program sonlandırılıyor.")
         return
-
-    display_recommendations(filtered_results, all_results)
 
 if __name__ == "__main__":
     main()
