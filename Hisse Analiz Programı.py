@@ -6,38 +6,45 @@ import warnings
 warnings.filterwarnings('ignore')
 
 # =============================================================================
-# GÜNCELLENMIŞ FİLTRE KRİTERLERİ
+# GÜNCELLENMIŞ FİLTRE KRİTERLERİ - İYİLEŞTİRİLMİŞ VERSİYON
 # =============================================================================
 
-# RSI Kriterleri
+# 🟢 OLUMLU NOKTALAR (Aynen kalsın)
+# RSI Kriterleri - Mükemmel seviye, ne çok dipte ne aşırı alımda
 MIN_RSI = 40          # Minimum RSI değeri
 MAX_RSI = 60          # Maksimum RSI değeri (>60 ise alma)
 
-# MACD Kriterleri
+# MACD Kriterleri - Momentumun yeni başladığı noktaları yakalar
 MACD_CROSSOVER = True    # MACD çizgisi sinyal çizgisini aşağıdan yukarı kesmiş olmalı
 MACD_HISTOGRAM_POSITIVE = True  # MACD histogram pozitif olmalı
 
-# Hacim Kriterleri
-MIN_VOLUME = 150000     # Minimum günlük hacim
-VOLUME_INCREASE_MIN = 1.2  # Son gün hacim %20 artmış olmalı
+# 🟡 İYİLEŞTİRİLMİŞ NOKTALAR
+# Hacim Kriterleri - Likidite için artırıldı
+MIN_VOLUME = 500000     # Minimum günlük hacim (150k'dan 500k'ya çıkarıldı - spread koruması)
+VOLUME_INCREASE_MIN = 1.2  # Son gün hacim, son 5 günlük ortalamanın %20 üstü olmalı
+VOLUME_LOOKBACK_DAYS = 5   # Hacim karşılaştırması için gün sayısı
 
-# EMA Kriterleri
+# EMA Kriterleri - Kısa vadeli pozitif trend garantisi
 EMA20_ABOVE_EMA50 = True    # EMA20 > EMA50
 PRICE_NEAR_EMA20 = True     # Fiyat EMA20'ye yakın ama çok üstünde olmamalı
-MAX_PRICE_EMA20_DISTANCE = 0.05  # Fiyat EMA20'den maksimum %5 uzakta olabilir
+MAX_PRICE_EMA20_DISTANCE = 0.03  # Fiyat EMA20'den maksimum %3 uzakta (5%'den düşürüldü)
 
-# ATR Kriterleri (Günlük hareket)
+# ATR Kriterleri - Ne ölü hisse, ne spekülatif çılgınlık
 MIN_ATR_PERCENT = 3.0   # Minimum %3 günlük hareket
 MAX_ATR_PERCENT = 6.0   # Maksimum %6 günlük hareket
 
+# 🔴 KRİTİK DENGE NOKTALARI - İyileştirildi
 # Destek/Direnç Kriterleri
 NEAR_SUPPORT = True     # Fiyat destek bölgesine yakın olmalı
 MAX_SUPPORT_DISTANCE = 0.03  # Destekten maksimum %3 uzakta
-MAX_STOP_LOSS_DISTANCE = 0.03  # Stop-loss mesafesi %3'ü geçmemeli
+MAX_STOP_LOSS_DISTANCE = 0.04  # Stop-loss mesafesi %4'ü geçmemeli (gerçekçi seviye)
 RESISTANCE_POTENTIAL = True   # 2-3 gün içinde direnç seviyesine ulaşma potansiyeli
-MAX_RESISTANCE_DISTANCE = 0.08  # Dirençten maksimum %8 uzakta (2-3 günde ulaşılabilir)
+MAX_RESISTANCE_DISTANCE = 0.06  # Dirençten maksimum %6 uzakta (8%'den düşürüldü - daha gerçekçi)
 
-# Fiyat Kriterleri
+# Destek/Direnç analiz parametreleri - 3'e çıkarıldı
+SUPPORT_RESISTANCE_COUNT = 3  # Gösterilecek destek/direnç sayısı (2'den 3'e çıkarıldı)
+
+# Fiyat Kriterleri - Uygun, spek hisseleri hariç tutar
 MIN_PRICE = 3.0
 MAX_PRICE = 500.0
 
@@ -95,26 +102,65 @@ def calculate_atr(high, low, close, period=14):
     
     return atr
 
+def calculate_support_strength(prices, support_level, window=20):
+    """Destek seviyesinin gücünü hesapla"""
+    touches = 0
+    bounces = 0
+    tolerance = support_level * 0.02  # %2 tolerans
+    
+    for i in range(len(prices) - window, len(prices)):
+        if i > 0:
+            # Destek seviyesine yaklaşma
+            if abs(prices.iloc[i] - support_level) <= tolerance:
+                touches += 1
+                # Destek seviyesinden yukarı sıçrama
+                if i < len(prices) - 1 and prices.iloc[i+1] > prices.iloc[i]:
+                    bounces += 1
+    
+    if touches == 0:
+        return 0
+    
+    strength = (bounces / touches) * min(touches, 5)  # Max 5 puan
+    return min(strength, 5)  # 0-5 arası güç skoru
+
 def find_support_resistance_levels(prices, window=20):
-    """Destek ve direnç seviyelerini bul"""
-    # Son window günlük veriler üzerinden yerel min/max bul
+    """Geliştirilmiş destek ve direnç seviyelerini bul - 3 seviye + güç analizi"""
     supports = []
     resistances = []
     
     for i in range(window, len(prices) - window):
         # Yerel minimum (destek)
         if prices.iloc[i] == prices.iloc[i-window:i+window].min():
-            supports.append(prices.iloc[i])
+            strength = calculate_support_strength(prices, prices.iloc[i], window)
+            supports.append((prices.iloc[i], strength))
         
         # Yerel maksimum (direnç)
         if prices.iloc[i] == prices.iloc[i-window:i+window].max():
-            resistances.append(prices.iloc[i])
+            strength = calculate_support_strength(prices, prices.iloc[i], window)
+            resistances.append((prices.iloc[i], strength))
     
-    # En son 2 destek ve direnç seviyesini al
-    supports = sorted(supports)[-2:] if len(supports) >= 2 else supports
-    resistances = sorted(resistances, reverse=True)[:2] if len(resistances) >= 2 else resistances
+    # Güçlü seviyeler öncelikli olmak üzere sırala
+    supports = sorted(supports, key=lambda x: (-x[1], -x[0]))  # Güce göre, sonra fiyata göre
+    resistances = sorted(resistances, key=lambda x: (-x[1], x[0]))  # Güce göre, sonra fiyata göre
     
-    return supports, resistances
+    # En güçlü 3 seviyeyi al
+    top_supports = supports[:SUPPORT_RESISTANCE_COUNT]
+    top_resistances = resistances[:SUPPORT_RESISTANCE_COUNT]
+    
+    return top_supports, top_resistances
+
+def check_volume_increase(volume, days=VOLUME_LOOKBACK_DAYS):
+    """Geliştirilmiş hacim artış kontrolü - son N günlük ortalama ile karşılaştır"""
+    if len(volume) < days + 1:
+        return 1.0
+    
+    current_volume = volume.iloc[-1]
+    avg_volume = volume.iloc[-(days+1):-1].mean()  # Son N günün ortalaması (bugün hariç)
+    
+    if avg_volume == 0:
+        return 1.0
+    
+    return current_volume / avg_volume
 
 def check_macd_crossover(macd_line, signal_line, lookback=5):
     """MACD çizgisinin sinyal çizgisini aşağıdan yukarı kesip kesmediğini kontrol et"""
@@ -151,8 +197,9 @@ def analyze_stock_comprehensive(ticker):
         # Temel veriler
         current_price = close.iloc[-1]
         current_volume = volume.iloc[-1]
-        prev_volume = volume.iloc[-2] if len(volume) > 1 else current_volume
-        volume_increase = current_volume / prev_volume if prev_volume > 0 else 1
+        
+        # Geliştirilmiş hacim artış kontrolü
+        volume_increase = check_volume_increase(volume)
         
         # EMA hesaplamaları
         ema_20 = calculate_ema(close, 20).iloc[-1]
@@ -172,28 +219,29 @@ def analyze_stock_comprehensive(ticker):
         atr = calculate_atr(high, low, close).iloc[-1]
         atr_percent = (atr / current_price) * 100
         
-        # Destek ve direnç seviyeleri
-        supports, resistances = find_support_resistance_levels(close)
+        # Geliştirilmiş destek ve direnç seviyeleri (güç analizi ile)
+        supports_with_strength, resistances_with_strength = find_support_resistance_levels(close)
         
         # Destek ve direnç uzaklıkları
         support_distances = []
         resistance_distances = []
         
-        for support in supports:
-            distance = ((current_price - support) / support) * 100
+        for support_price, strength in supports_with_strength:
+            distance = ((current_price - support_price) / support_price) * 100
             support_distances.append(distance)
         
-        for resistance in resistances:
-            distance = ((resistance - current_price) / current_price) * 100
+        for resistance_price, strength in resistances_with_strength:
+            distance = ((resistance_price - current_price) / current_price) * 100
             resistance_distances.append(distance)
         
         # En yakın destek ve direnç
-        nearest_support = min(supports) if supports else None
-        nearest_resistance = min(resistances) if resistances else None
+        nearest_support = supports_with_strength[0][0] if supports_with_strength else None
+        nearest_resistance = resistances_with_strength[0][0] if resistances_with_strength else None
         
         return {
             'ticker': ticker.upper(),
             'price': current_price,
+            'volume': current_volume,
             'volume_increase': volume_increase,
             'rsi': rsi,
             'ema_20': ema_20,
@@ -203,8 +251,8 @@ def analyze_stock_comprehensive(ticker):
             'histogram': current_histogram,
             'macd_crossover': macd_crossover,
             'atr_percent': atr_percent,
-            'supports': supports,
-            'resistances': resistances,
+            'supports_with_strength': supports_with_strength,
+            'resistances_with_strength': resistances_with_strength,
             'support_distances': support_distances,
             'resistance_distances': resistance_distances,
             'nearest_support': nearest_support,
@@ -224,6 +272,10 @@ def check_new_filters(stock):
     if not (MIN_PRICE <= stock['price'] <= MAX_PRICE):
         return False
     
+    # Minimum hacim kontrolü
+    if stock['volume'] < MIN_VOLUME:
+        return False
+    
     # RSI filtreleri (40-60 arası, >60 ise alma)
     if not (MIN_RSI <= stock['rsi'] <= MAX_RSI):
         return False
@@ -236,7 +288,7 @@ def check_new_filters(stock):
     if MACD_HISTOGRAM_POSITIVE and stock['histogram'] <= 0:
         return False
     
-    # Hacim artış kontrolü
+    # Geliştirilmiş hacim artış kontrolü
     if stock['volume_increase'] < VOLUME_INCREASE_MIN:
         return False
     
@@ -245,7 +297,7 @@ def check_new_filters(stock):
         if stock['ema_20'] <= stock['ema_50']:
             return False
     
-    # Fiyat EMA20'ye yakın kontrolü
+    # Fiyat EMA20'ye yakın kontrolü (daha sıkı %3)
     if PRICE_NEAR_EMA20:
         price_ema20_distance = abs(stock['price'] - stock['ema_20']) / stock['ema_20']
         if price_ema20_distance > MAX_PRICE_EMA20_DISTANCE:
@@ -261,13 +313,13 @@ def check_new_filters(stock):
         if support_distance > MAX_SUPPORT_DISTANCE:
             return False
     
-    # Stop-loss mesafesi kontrolü
+    # Stop-loss mesafesi kontrolü (gerçekçi %4)
     if stock['nearest_support']:
         stop_loss_distance = (stock['price'] - stock['nearest_support']) / stock['price']
         if stop_loss_distance > MAX_STOP_LOSS_DISTANCE:
             return False
     
-    # Direnç potansiyeli kontrolü
+    # Direnç potansiyeli kontrolü (daha gerçekçi %6)
     if RESISTANCE_POTENTIAL and stock['nearest_resistance']:
         resistance_distance = (stock['nearest_resistance'] - stock['price']) / stock['price']
         if resistance_distance > MAX_RESISTANCE_DISTANCE:
@@ -338,40 +390,64 @@ def calculate_proximity_score(stock):
     
     return score / max_score if max_score > 0 else 0
 
+def format_support_strength(strength):
+    """Destek gücünü formatla"""
+    if strength >= 4:
+        return "🔴 Çok Güçlü"
+    elif strength >= 3:
+        return "🟠 Güçlü"
+    elif strength >= 2:
+        return "🟡 Orta"
+    elif strength >= 1:
+        return "🟢 Zayıf"
+    else:
+        return "⚪ Çok Zayıf"
+
 def format_stock_summary(stock):
-    """Hisse özet bilgilerini formatla"""
-    # En yakın 2 destek (fiyat ve uzaklık)
+    """Hisse özet bilgilerini formatla - 3 seviye + güç göstergesi"""
+    # En güçlü 3 destek (fiyat, uzaklık ve güç)
     support_text = "Yok"
-    if len(stock['supports']) >= 2:
-        sup1_price = stock['supports'][0]
-        sup2_price = stock['supports'][1]
-        sup1_dist = stock['support_distances'][0]
-        sup2_dist = stock['support_distances'][1]
-        support_text = f"{sup1_price:.2f}TL (%{sup1_dist:.1f}), {sup2_price:.2f}TL (%{sup2_dist:.1f})"
-    elif len(stock['supports']) == 1:
-        sup_price = stock['supports'][0]
-        sup_dist = stock['support_distances'][0]
-        support_text = f"{sup_price:.2f}TL (%{sup_dist:.1f})"
+    if len(stock['supports_with_strength']) >= 3:
+        support_parts = []
+        for i in range(3):
+            price, strength = stock['supports_with_strength'][i]
+            distance = stock['support_distances'][i]
+            strength_text = format_support_strength(strength)
+            support_parts.append(f"{price:.2f}TL (%{distance:.1f}) {strength_text}")
+        support_text = " | ".join(support_parts)
+    elif len(stock['supports_with_strength']) > 0:
+        support_parts = []
+        for i, (price, strength) in enumerate(stock['supports_with_strength']):
+            distance = stock['support_distances'][i]
+            strength_text = format_support_strength(strength)
+            support_parts.append(f"{price:.2f}TL (%{distance:.1f}) {strength_text}")
+        support_text = " | ".join(support_parts)
     
-    # En yakın 2 direnç (fiyat ve uzaklık)
+    # En güçlü 3 direnç (fiyat, uzaklık ve güç)
     resistance_text = "Yok"
-    if len(stock['resistances']) >= 2:
-        res1_price = stock['resistances'][0]
-        res2_price = stock['resistances'][1]
-        res1_dist = stock['resistance_distances'][0]
-        res2_dist = stock['resistance_distances'][1]
-        resistance_text = f"{res1_price:.2f}TL (%{res1_dist:.1f}), {res2_price:.2f}TL (%{res2_dist:.1f})"
-    elif len(stock['resistances']) == 1:
-        res_price = stock['resistances'][0]
-        res_dist = stock['resistance_distances'][0]
-        resistance_text = f"{res_price:.2f}TL (%{res_dist:.1f})"
+    if len(stock['resistances_with_strength']) >= 3:
+        resistance_parts = []
+        for i in range(3):
+            price, strength = stock['resistances_with_strength'][i]
+            distance = stock['resistance_distances'][i]
+            strength_text = format_support_strength(strength)
+            resistance_parts.append(f"{price:.2f}TL (%{distance:.1f}) {strength_text}")
+        resistance_text = " | ".join(resistance_parts)
+    elif len(stock['resistances_with_strength']) > 0:
+        resistance_parts = []
+        for i, (price, strength) in enumerate(stock['resistances_with_strength']):
+            distance = stock['resistance_distances'][i]
+            strength_text = format_support_strength(strength)
+            resistance_parts.append(f"{price:.2f}TL (%{distance:.1f}) {strength_text}")
+        resistance_text = " | ".join(resistance_parts)
     
     return {
         "Hisse": stock['ticker'],
         "Güncel Fiyat": f"{stock['price']:.2f}TL",
-        "En Yakın 2 Destek": support_text,
-        "En Yakın 2 Direnç": resistance_text,
+        "En Güçlü 3 Destek": support_text,
+        "En Güçlü 3 Direnç": resistance_text,
         "Hacim Artışı": f"%{(stock['volume_increase']-1)*100:.1f}",
+        "Günlük Hacim": f"{stock['volume']:,.0f}",
         "ATR": f"%{stock['atr_percent']:.1f}"
     }
 
@@ -381,6 +457,9 @@ def explain_why_not_matching(stock):
     
     if not (MIN_PRICE <= stock['price'] <= MAX_PRICE):
         reasons.append(f"Fiyat {stock['price']:.2f} TL, aralık dışında ({MIN_PRICE}-{MAX_PRICE} TL)")
+    
+    if stock['volume'] < MIN_VOLUME:
+        reasons.append(f"Günlük hacim yetersiz ({stock['volume']:,.0f} < {MIN_VOLUME:,})")
     
     if not (MIN_RSI <= stock['rsi'] <= MAX_RSI):
         reasons.append(f"RSI {stock['rsi']:.1f}, aralık dışında ({MIN_RSI}-{MAX_RSI})")
@@ -392,14 +471,14 @@ def explain_why_not_matching(stock):
         reasons.append("MACD histogram pozitif değil")
     
     if stock['volume_increase'] < VOLUME_INCREASE_MIN:
-        reasons.append(f"Hacim artışı yetersiz (%{(stock['volume_increase']-1)*100:.1f})")
+        reasons.append(f"Hacim artışı yetersiz (%{(stock['volume_increase']-1)*100:.1f} < %{(VOLUME_INCREASE_MIN-1)*100:.0f})")
     
     if stock['ema_50'] and stock['ema_20'] <= stock['ema_50']:
         reasons.append("EMA20 EMA50'nin üstünde değil")
     
     price_ema20_distance = abs(stock['price'] - stock['ema_20']) / stock['ema_20']
     if price_ema20_distance > MAX_PRICE_EMA20_DISTANCE:
-        reasons.append(f"Fiyat EMA20'den çok uzak (%{price_ema20_distance*100:.1f})")
+        reasons.append(f"Fiyat EMA20'den çok uzak (%{price_ema20_distance*100:.1f} > %{MAX_PRICE_EMA20_DISTANCE*100:.0f})")
     
     if not (MIN_ATR_PERCENT <= stock['atr_percent'] <= MAX_ATR_PERCENT):
         reasons.append(f"ATR aralık dışında (%{stock['atr_percent']:.1f})")
@@ -407,7 +486,7 @@ def explain_why_not_matching(stock):
     if stock['nearest_support']:
         support_distance = abs(stock['price'] - stock['nearest_support']) / stock['nearest_support']
         if support_distance > MAX_SUPPORT_DISTANCE:
-            reasons.append(f"Destekten çok uzak (%{support_distance*100:.1f})")
+            reasons.append(f"En yakın destekten çok uzak (%{support_distance*100:.1f} > %{MAX_SUPPORT_DISTANCE*100:.0f})")
     
     return reasons
 
@@ -444,9 +523,9 @@ def display_results(filtered_results, all_results, is_specific_search=False):
     if is_specific_search:
         # Belirli hisse araması - hem uygun hem uymayanları göster
         if filtered_results:
-            print(f"{'='*80}")
+            print(f"{'='*100}")
             print(f"KRİTERLERE UYGUN HİSSELER ({len(filtered_results)} adet)")
-            print(f"{'='*80}")
+            print(f"{'='*100}")
             
             table_data = []
             for stock in filtered_results:
@@ -458,23 +537,27 @@ def display_results(filtered_results, all_results, is_specific_search=False):
         # Kriterlere uymayanlar
         non_matching = [s for s in all_results if s not in filtered_results]
         if non_matching:
-            print(f"\n{'='*80}")
+            print(f"\n{'='*100}")
             print(f"KRİTERLERE UYGUN OLMAYAN HİSSELER ({len(non_matching)} adet)")
-            print(f"{'='*80}")
+            print(f"{'='*100}")
             
             for stock in non_matching:
-                print(f"\n📊 {stock['ticker']} - Güncel Fiyat: {stock['price']:.2f}TL")
+                print(f"\n📊 {stock['ticker']} - Güncel Fiyat: {stock['price']:.2f}TL - Hacim: {stock['volume']:,.0f}")
                 
-                # Destek ve direnç bilgileri detaylı göster
-                if stock['supports']:
-                    print("   Destekler:")
-                    for i, (support, distance) in enumerate(zip(stock['supports'], stock['support_distances'])):
-                        print(f"     {i+1}. {support:.2f}TL (Uzaklık: %{distance:.1f})")
+                # Güçlü destek ve direnç bilgileri detaylı göster
+                if stock['supports_with_strength']:
+                    print("   Güçlü Destekler:")
+                    for i, (support, strength) in enumerate(stock['supports_with_strength'][:3]):
+                        distance = stock['support_distances'][i]
+                        strength_text = format_support_strength(strength)
+                        print(f"     {i+1}. {support:.2f}TL (Uzaklık: %{distance:.1f}) - {strength_text}")
                 
-                if stock['resistances']:
-                    print("   Dirençler:")
-                    for i, (resistance, distance) in enumerate(zip(stock['resistances'], stock['resistance_distances'])):
-                        print(f"     {i+1}. {resistance:.2f}TL (Uzaklık: %{distance:.1f})")
+                if stock['resistances_with_strength']:
+                    print("   Güçlü Dirençler:")
+                    for i, (resistance, strength) in enumerate(stock['resistances_with_strength'][:3]):
+                        distance = stock['resistance_distances'][i]
+                        strength_text = format_support_strength(strength)
+                        print(f"     {i+1}. {resistance:.2f}TL (Uzaklık: %{distance:.1f}) - {strength_text}")
                 
                 print(f"   Hacim Artışı: %{(stock['volume_increase']-1)*100:.1f}")
                 print(f"   ATR: %{stock['atr_percent']:.1f}")
@@ -487,9 +570,9 @@ def display_results(filtered_results, all_results, is_specific_search=False):
     else:
         # BIST100 araması - sadece uygun olanları göster
         if filtered_results:
-            print(f"{'='*80}")
+            print(f"{'='*100}")
             print(f"KRİTERLERE UYGUN HİSSELER ({len(filtered_results)} adet)")
-            print(f"{'='*80}")
+            print(f"{'='*100}")
             
             table_data = []
             for stock in filtered_results:
@@ -525,24 +608,36 @@ def display_results(filtered_results, all_results, is_specific_search=False):
 
 def show_current_filters():
     """Mevcut filtreleri göster"""
-    print(f"\n{'='*60}")
-    print(f"GÜNCEL FİLTRE KRİTERLERİ")
-    print(f"{'='*60}")
-    print(f"RSI: {MIN_RSI}-{MAX_RSI} (>{MAX_RSI} ise alma)")
-    print(f"MACD: Çizgi sinyal çizgisini aşağıdan yukarı kesmiş olmalı")
-    print(f"MACD Histogram: Pozitif olmalı")
-    print(f"Hacim: Son gün %{(VOLUME_INCREASE_MIN-1)*100:.0f} artmış olmalı")
-    print(f"EMA: EMA20 > EMA50")
-    print(f"Fiyat-EMA20: Maksimum %{MAX_PRICE_EMA20_DISTANCE*100:.0f} uzaklık")
-    print(f"ATR: %{MIN_ATR_PERCENT}-{MAX_ATR_PERCENT} günlük hareket")
-    print(f"Destek: Maksimum %{MAX_SUPPORT_DISTANCE*100:.0f} uzaklık")
-    print(f"Stop-loss: Maksimum %{MAX_STOP_LOSS_DISTANCE*100:.0f}")
-    print(f"Direnç Potansiyeli: Maksimum %{MAX_RESISTANCE_DISTANCE*100:.0f} uzaklık")
+    print(f"\n{'='*80}")
+    print(f"GÜNCEL FİLTRE KRİTERLERİ - İYİLEŞTİRİLMİŞ VERSİYON")
+    print(f"{'='*80}")
+    print(f"🟢 OLUMLU NOKTALAR (Aynen korundu):")
+    print(f"   • RSI: {MIN_RSI}-{MAX_RSI} (>{MAX_RSI} ise alma)")
+    print(f"   • MACD: Çizgi sinyal çizgisini aşağıdan yukarı kesmiş olmalı")
+    print(f"   • MACD Histogram: Pozitif olmalı")
+    print(f"   • EMA: EMA20 > EMA50")
+    print(f"   • ATR: %{MIN_ATR_PERCENT}-{MAX_ATR_PERCENT} günlük hareket")
+    print(f"   • Fiyat Aralığı: {MIN_PRICE}-{MAX_PRICE} TL")
+    
+    print(f"\n🟡 İYİLEŞTİRİLEN NOKTALAR:")
+    print(f"   • Minimum Hacim: {MIN_VOLUME:,} (150k'dan artırıldı - likidite koruması)")
+    print(f"   • Hacim Artışı: Son {VOLUME_LOOKBACK_DAYS} günlük ortalama ile karşılaştırma")
+    print(f"   • Fiyat-EMA20: Maksimum %{MAX_PRICE_EMA20_DISTANCE*100:.0f} uzaklık (5%'den düşürüldü)")
+    print(f"   • Destek/Direnç: {SUPPORT_RESISTANCE_COUNT} seviye + güç analizi")
+    
+    print(f"\n🔴 KRİTİK DENGE NOKTALARI:")
+    print(f"   • Destek Uzaklığı: Maksimum %{MAX_SUPPORT_DISTANCE*100:.0f}")
+    print(f"   • Stop-loss: Maksimum %{MAX_STOP_LOSS_DISTANCE*100:.0f} (gerçekçi seviye)")
+    print(f"   • Direnç Potansiyeli: Maksimum %{MAX_RESISTANCE_DISTANCE*100:.0f} (8%'den düşürüldü)")
+    
+    print(f"\n📊 DESTEK GÜÇ SEVİYELERİ:")
+    print(f"   🔴 Çok Güçlü (4-5 puan) | 🟠 Güçlü (3-4 puan)")
+    print(f"   🟡 Orta (2-3 puan) | 🟢 Zayıf (1-2 puan) | ⚪ Çok Zayıf (0-1 puan)")
 
 def main():
     """Ana program"""
-    print("🚀 BIST Gelişmiş Filtreli Hisse Tarayıcısı v2.0")
-    print("="*60)
+    print("🚀 BIST Gelişmiş Filtreli Hisse Tarayıcısı v3.0 - İYİLEŞTİRİLMİŞ")
+    print("="*80)
 
     show_current_filters()
 
