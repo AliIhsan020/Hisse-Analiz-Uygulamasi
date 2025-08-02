@@ -1,14 +1,15 @@
-# BIST Gelişmiş Filtreli Hisse Tarayıcısı
+# BIST Gelişmiş Filtreli Hisse Tarayıcısı v2.0
 
-Bu Python programı, Borsa İstanbul (BIST) hisselerini teknik analiz göstergelerine göre otomatik olarak tarar ve filtreler. Kullanıcı, ister tüm BIST hisselerini isterse seçtiği hisseleri analiz ettirebilir. Sonuçlar, öneriler ve sebepleriyle birlikte ekrana yazdırılır.
+Bu Python programı, Borsa İstanbul (BIST) hisselerini teknik analiz göstergelerine göre otomatik olarak tarar ve filtreler. Kullanıcı ister tüm BIST100 hisselerini isterse seçtiği hisseleri analiz ettirebilir. Sonuçlar, tablo halinde özetlenir ve detaylı gerekçelerle birlikte ekrana yazdırılır.
 
 ## Özellikler
 
-- **RSI, MACD, Parabolik SAR, Hareketli Ortalamalar, Bollinger Bands, Stochastic, Volatilite** gibi teknik göstergelerle gelişmiş filtreleme
-- Minimum/maksimum fiyat ve hacim gibi temel filtreler
-- Kriterlere uyan hisseler için öneri ve gerekçeleri
-- Kriterlere uymayan hisseler için detaylı açıklama
-- Kullanıcıdan hisse seçimi veya tüm hisseleri tarama seçeneği
+- **RSI, MACD, EMA, ATR, Destek/Direnç, Hacim** gibi teknik göstergelerle gelişmiş filtreleme
+- Fiyat, hacim, volatilite ve teknik seviyelere göre detaylı analiz
+- Kriterlere uyan hisseler için tablo ve özet
+- Kriterlere uymayan hisseler için detaylı açıklama ve uymama sebepleri
+- Kriterlere en yakın hisseler için skor ve özet gösterimi
+- Kullanıcıdan hisse seçimi veya tüm BIST100 hisselerini tarama seçeneği
 
 ## Kurulum
 
@@ -25,37 +26,36 @@ Bu Python programı, Borsa İstanbul (BIST) hisselerini teknik analiz göstergel
    python "Hisse Analiz Programı.py"
    ```
 2. Program başında mevcut filtre kriterleri ekrana gelir.
-3. Tüm hisseleri taramak için `t`, belirli hisseleri taramak için `b` tuşlayın.
+3. Tüm BIST100 hisselerini taramak için `t`, belirli hisseleri taramak için `b` tuşlayın.
 4. Belirli hisseleri seçtiyseniz, hisse kodlarını virgülle ayırarak girin (örn: `THYAO,AKBNK`).
-5. Sonuçlar ekrana yazdırılır.
-
-> **Not:**  
-> - Tüm hisseler tarandığında **sadece kriterlere uyan hisseler** gösterilir.  
-> - Eğer hiç uygun hisse bulunamazsa, **kriterlere en yakın 3 hisse ve uymama sebepleri** gösterilir.
-> - Belirli hisse kodları girildiğinde ise **hem uyanlar hem de uymayanlar ve sebepleri** gösterilir.
+5. Sonuçlar tablo halinde ve gerekçeleriyle ekrana yazdırılır.
 
 ## Filtre Kriterleri
 
-Filtreler, kodun başındaki global değişkenlerle kolayca değiştirilebilir. Örneğin:
+Filtreler kodun başındaki global değişkenlerle kolayca değiştirilebilir:
 - RSI aralığı
-- MACD pozitif/negatif
-- Fiyat, hacim, volatilite aralıkları
-- Bollinger Bands pozisyonu
-- Stochastic K aralığı
-- Fiyatın hareketli ortalamaların üstünde/altında olması
+- MACD crossover ve histogram pozitifliği
+- Hacim artışı oranı
+- EMA20 ve EMA50 ilişkisi, fiyatın EMA20'ye yakınlığı
+- ATR (volatilite) aralığı
+- Fiyatın destek/direnç seviyelerine uzaklığı
+- Stop-loss ve direnç potansiyeli mesafeleri
+- Fiyat aralığı
 
-Her bir filtreyi True/False/None veya sayısal aralıklarla özelleştirebilirsiniz.
+Her bir filtreyi True/False veya sayısal aralıklarla özelleştirebilirsiniz.
 
 ## Çıktı
 
-- **Kriterlere uyan hisseler**: Öneri (Al/Tut/Sat) ve sebepleriyle birlikte listelenir.
-- **Kriterlere uymayan hisseler**: Uymama sebepleriyle birlikte ayrıca gösterilir.
+- **Kriterlere uyan hisseler**: Tablo halinde özetlenir (fiyat, destek/direnç, hacim artışı, ATR vb.)
+- **Kriterlere uymayan hisseler**: Uymama sebepleriyle birlikte detaylı olarak gösterilir
+- **Kriterlere en yakın hisseler**: Skor ve özet ile birlikte gösterilir (uygun hisse yoksa)
 
 ## Notlar
 
 - Program, Yahoo Finance üzerinden veri çeker. Veri eksikliği veya bağlantı sorunlarında bazı hisseler analiz edilemeyebilir.
-- Filtreleri değiştirdikçe, analiz sonuçları ve öneriler de değişecektir.
+- Filtreleri değiştirdikçe analiz sonuçları ve öneriler de değişecektir.
+- Destek/direnç seviyeleri algoritmik olarak son 20 günlük lokal min/max ile hesaplanır.
 
 ---
 
-Her kod güncellemesinde bu dosya da güncellenecektir.
+Her kod güncellemesinde bu dosya da güncellenmelidir.

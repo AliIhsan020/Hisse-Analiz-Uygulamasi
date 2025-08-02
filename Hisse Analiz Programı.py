@@ -340,24 +340,37 @@ def calculate_proximity_score(stock):
 
 def format_stock_summary(stock):
     """Hisse özet bilgilerini formatla"""
-    # En yakın 2 destek uzaklığı
+    # En yakın 2 destek (fiyat ve uzaklık)
     support_text = "Yok"
-    if len(stock['support_distances']) >= 2:
-        support_text = f"{stock['support_distances'][0]:.1f}%, {stock['support_distances'][1]:.1f}%"
-    elif len(stock['support_distances']) == 1:
-        support_text = f"{stock['support_distances'][0]:.1f}%"
+    if len(stock['supports']) >= 2:
+        sup1_price = stock['supports'][0]
+        sup2_price = stock['supports'][1]
+        sup1_dist = stock['support_distances'][0]
+        sup2_dist = stock['support_distances'][1]
+        support_text = f"{sup1_price:.2f}TL (%{sup1_dist:.1f}), {sup2_price:.2f}TL (%{sup2_dist:.1f})"
+    elif len(stock['supports']) == 1:
+        sup_price = stock['supports'][0]
+        sup_dist = stock['support_distances'][0]
+        support_text = f"{sup_price:.2f}TL (%{sup_dist:.1f})"
     
-    # En yakın 2 direnç uzaklığı
+    # En yakın 2 direnç (fiyat ve uzaklık)
     resistance_text = "Yok"
-    if len(stock['resistance_distances']) >= 2:
-        resistance_text = f"{stock['resistance_distances'][0]:.1f}%, {stock['resistance_distances'][1]:.1f}%"
-    elif len(stock['resistance_distances']) == 1:
-        resistance_text = f"{stock['resistance_distances'][0]:.1f}%"
+    if len(stock['resistances']) >= 2:
+        res1_price = stock['resistances'][0]
+        res2_price = stock['resistances'][1]
+        res1_dist = stock['resistance_distances'][0]
+        res2_dist = stock['resistance_distances'][1]
+        resistance_text = f"{res1_price:.2f}TL (%{res1_dist:.1f}), {res2_price:.2f}TL (%{res2_dist:.1f})"
+    elif len(stock['resistances']) == 1:
+        res_price = stock['resistances'][0]
+        res_dist = stock['resistance_distances'][0]
+        resistance_text = f"{res_price:.2f}TL (%{res_dist:.1f})"
     
     return {
         "Hisse": stock['ticker'],
-        "En Yakın 2 Destek Uzaklığı": support_text,
-        "En Yakın 2 Direnç Uzaklığı": resistance_text,
+        "Güncel Fiyat": f"{stock['price']:.2f}TL",
+        "En Yakın 2 Destek": support_text,
+        "En Yakın 2 Direnç": resistance_text,
         "Hacim Artışı": f"%{(stock['volume_increase']-1)*100:.1f}",
         "ATR": f"%{stock['atr_percent']:.1f}"
     }
@@ -450,11 +463,21 @@ def display_results(filtered_results, all_results, is_specific_search=False):
             print(f"{'='*80}")
             
             for stock in non_matching:
-                print(f"\n📊 {stock['ticker']}:")
-                summary = format_stock_summary(stock)
-                for key, value in summary.items():
-                    if key != "Hisse":
-                        print(f"   {key}: {value}")
+                print(f"\n📊 {stock['ticker']} - Güncel Fiyat: {stock['price']:.2f}TL")
+                
+                # Destek ve direnç bilgileri detaylı göster
+                if stock['supports']:
+                    print("   Destekler:")
+                    for i, (support, distance) in enumerate(zip(stock['supports'], stock['support_distances'])):
+                        print(f"     {i+1}. {support:.2f}TL (Uzaklık: %{distance:.1f})")
+                
+                if stock['resistances']:
+                    print("   Dirençler:")
+                    for i, (resistance, distance) in enumerate(zip(stock['resistances'], stock['resistance_distances'])):
+                        print(f"     {i+1}. {resistance:.2f}TL (Uzaklık: %{distance:.1f})")
+                
+                print(f"   Hacim Artışı: %{(stock['volume_increase']-1)*100:.1f}")
+                print(f"   ATR: %{stock['atr_percent']:.1f}")
                 
                 reasons = explain_why_not_matching(stock)
                 print("   Uyumsuzluk Sebepleri:")
